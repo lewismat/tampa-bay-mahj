@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tampa Bay Mahj — Holly&#39;s Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Great+Vibes&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F7F2E4; --cream-stripe:#EFE7CC;
+    --green:#4C5B40; --green-dark:#3B4832; --green-soft:#6B7A5C;
+    --gold:#C9A24B; --gold-soft:#E3CD96; --red:#B3542E; --white:#FFFDF8;
+    --shadow:0 14px 36px rgba(59,72,50,.14);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Jost',sans-serif;color:var(--green-dark);
+    background:repeating-linear-gradient(90deg,var(--cream) 0 26px,var(--cream-stripe) 26px 52px);min-height:100vh}
+  .wrap{max-width:1100px;margin:0 auto;padding:38px 20px 80px}
+  header{display:flex;align-items:center;gap:18px;margin-bottom:30px;flex-wrap:wrap}
+  header svg{width:74px;height:74px;flex:none}
+  header .t h1{font-family:'Cormorant Garamond',serif;font-weight:600;letter-spacing:.25em;text-transform:uppercase;font-size:1.25rem;color:var(--green)}
+  header .t .s{font-family:'Great Vibes',cursive;font-size:1.7rem;color:var(--green);line-height:1.1}
+  header .right{margin-left:auto;font-size:.8rem;color:var(--green-soft)}
+  header .right a{color:var(--green);border-bottom:1px solid var(--gold);text-decoration:none}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:34px}
+  .card{background:var(--white);border:1px solid var(--gold-soft);border-radius:16px;padding:22px;box-shadow:var(--shadow);text-align:center}
+  .card .n{font-family:'Cormorant Garamond',serif;font-size:2.6rem;font-weight:700;color:var(--green)}
+  .card .l{font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--green-soft);margin-top:4px}
+
+  h2{font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--green);margin:34px 0 14px;display:flex;align-items:center;gap:10px}
+  h2::after{content:"";flex:1;height:1px;background:var(--gold-soft)}
+  .panel{background:var(--white);border:1px solid var(--gold-soft);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--cream);background:var(--green);padding:12px 14px;text-align:left;font-weight:500}
+  td{padding:12px 14px;border-top:1px solid #F0EAD6;vertical-align:top}
+  tr.row{cursor:pointer;transition:background .15s}
+  tr.row:hover{background:#FBF8EE}
+  .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .badge.new{background:#EAF0E2;color:var(--green)}
+  .badge.contacted{background:#F5E9CE;color:#8A6B22}
+  .badge.booked{background:var(--green);color:var(--cream)}
+  .badge.archived{background:#EEE;color:#888}
+  tr.detail td{background:#FBF8EE;border-top:none;padding:20px 24px}
+  .dg{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .dg .item .k{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--green-soft)}
+  .dg .item .v{margin-top:2px;font-size:.95rem;white-space:pre-wrap}
+  .dg .wide{grid-column:1/-1}
+  select.status{font-family:'Jost',sans-serif;padding:6px 10px;border:1px solid var(--gold-soft);border-radius:8px;background:var(--white);color:var(--green-dark)}
+  .empty{padding:44px;text-align:center;color:var(--green-soft);font-weight:300}
+  .empty .big{font-size:2.4rem;margin-bottom:8px}
+  .muted{color:#9AA089;font-size:.8rem}
+  .visits td{font-size:.82rem}
+  .refresh{font-size:.78rem;color:var(--green-soft);margin-top:8px;text-align:right}
+  @media(max-width:700px){ .hide-sm{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="0 0 200 200" role="img" aria-label="Tampa Bay Mahj logo">
+      <defs>
+        <pattern id="stripes" width="16" height="16" patternUnits="userSpaceOnUse">
+          <rect width="16" height="16" fill="#F7F2E4"/><rect width="8" height="16" fill="#EFE7CC"/>
+        </pattern>
+      </defs>
+      <circle cx="100" cy="100" r="98" fill="#C9A24B"/>
+      <circle cx="100" cy="100" r="96" fill="url(#stripes)"/>
+      <path d="M 100.0 38.0 A 16.3 16.3 0 0 1 123.7 42.7 A 16.3 16.3 0 0 1 143.8 56.2 A 16.3 16.3 0 0 1 157.3 76.3 A 16.3 16.3 0 0 1 162.0 100.0 A 16.3 16.3 0 0 1 157.3 123.7 A 16.3 16.3 0 0 1 143.8 143.8 A 16.3 16.3 0 0 1 123.7 157.3 A 16.3 16.3 0 0 1 100.0 162.0 A 16.3 16.3 0 0 1 76.3 157.3 A 16.3 16.3 0 0 1 56.2 143.8 A 16.3 16.3 0 0 1 42.7 123.7 A 16.3 16.3 0 0 1 38.0 100.0 A 16.3 16.3 0 0 1 42.7 76.3 A 16.3 16.3 0 0 1 56.2 56.2 A 16.3 16.3 0 0 1 76.3 42.7 A 16.3 16.3 0 0 1 100.0 38.0 Z"
+        fill="#FDFBF2" stroke="#4C5B40" stroke-width="2.5"/>
+      <text x="100" y="88" text-anchor="middle" font-family="'Cormorant Garamond',serif" font-size="15" letter-spacing="3.5" fill="#4C5B40" font-weight="600">TAMPA BAY</text>
+      <text x="100" y="134" text-anchor="middle" font-family="'Great Vibes',cursive" font-size="46" fill="#4C5B40">Mahj</text>
+    </svg>
+    <div class="t">
+      <h1>Holly&#39;s Dashboard</h1>
+      <div class="s">Tampa Bay Mahj</div>
+    </div>
+    <div class="right">Inquiry form: <a href="/" target="_blank">open ↗</a></div>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="n" id="stVisits">–</div><div class="l">Form Visits</div></div>
+    <div class="card"><div class="n" id="stUnique">–</div><div class="l">Unique Visitors</div></div>
+    <div class="card"><div class="n" id="stInquiries">–</div><div class="l">Inquiries</div></div>
+    <div class="card"><div class="n" id="stConv">–</div><div class="l">Visitor → Inquiry</div></div>
+  </div>
+
+  <h2>Inquiries</h2>
+  <div class="panel">
+    <table id="inquiriesTable">
+      <thead><tr>
+        <th>Received</th><th>Name</th><th class="hide-sm">Event</th><th class="hide-sm">Date</th><th class="hide-sm">Guests</th><th>Status</th>
+      </tr></thead>
+      <tbody id="inquiriesBody"></tbody>
+    </table>
+    <div class="empty" id="inqEmpty" style="display:none">
+      <div class="big">🀄</div>No inquiries yet — share the form link and watch this fill up!
+    </div>
+  </div>
+
+  <h2>Recent Visits</h2>
+  <div class="panel">
+    <table class="visits">
+      <thead><tr><th>When</th><th>Visitor</th><th class="hide-sm">Came From</th><th class="hide-sm">Device</th></tr></thead>
+      <tbody id="visitsBody"></tbody>
+    </table>
+    <div class="empty" id="visEmpty" style="display:none">
+      <div class="big">👀</div>No visits recorded yet.
+    </div>
+  </div>
+  <div class="refresh">Auto-refreshes every 30 seconds</div>
+</div>
+
+<script>
+(function(){
+  var openRow = null;
+  function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+  function fmt(iso){
+    if(!iso) return '';
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) + ' ' +
+           d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  }
+  function device(ua){
+    if(!ua) return '';
+    if(/iPhone|Android.+Mobile/i.test(ua)) return '📱 Phone';
+    if(/iPad|Tablet/i.test(ua)) return 'Tablet';
+    return '💻 Desktop';
+  }
+  function shortId(v){ return v ? v.slice(0,8) : '—'; }
+
+  async function load(){
+    try{
+      var r = await fetch('/api/dashboard');
+      var d = await r.json();
+      document.getElementById('stVisits').textContent = d.stats.totalVisits;
+      document.getElementById('stUnique').textContent = d.stats.uniqueVisitors;
+      document.getElementById('stInquiries').textContent = d.stats.totalInquiries;
+      document.getElementById('stConv').textContent = d.stats.conversionRate + '%';
+
+      var tb = document.getElementById('inquiriesBody');
+      tb.innerHTML = '';
+      document.getElementById('inqEmpty').style.display = d.inquiries.length ? 'none':'block';
+      d.inquiries.forEach(function(q){
+        var tr = document.createElement('tr');
+        tr.className = 'row';
+        tr.innerHTML =
+          '<td>'+fmt(q.submittedAt)+'</td>'+
+          '<td><b>'+esc(q.firstName)+' '+esc(q.lastName)+'</b><div class="muted">'+esc(q.email)+'</div></td>'+
+          '<td class="hide-sm">'+esc(q.eventType)+'</td>'+
+          '<td class="hide-sm">'+esc(q.eventDate)+(q.startTime?' · '+esc(q.startTime):'')+'</td>'+
+          '<td class="hide-sm">'+esc(q.guestCount)+'</td>'+
+          '<td><span class="badge '+esc(q.status)+'">'+esc(q.status)+'</span></td>';
+        var dt = document.createElement('tr');
+        dt.className = 'detail'; dt.style.display = 'none';
+        dt.innerHTML = '<td colspan="6">'+
+          '<div class="dg">'+
+          item('Phone', q.phone) + item('Email', q.email) +
+          item('Event Type', q.eventType) + item('Guests Expected', q.guestCount) +
+          item('Date', q.eventDate) + item('Start Time', q.startTime) +
+          item('Location', q.locationName) +
+          item('Address', [q.streetAddress, q.city, q.state, q.zip].filter(Boolean).join(', ')) +
+          '<div class="item wide"><div class="k">About the Event</div><div class="v">'+esc(q.aboutEvent)+'</div></div>'+
+          (q.anythingElse ? '<div class="item wide"><div class="k">Anything Else</div><div class="v">'+esc(q.anythingElse)+'</div></div>' : '')+
+          '<div class="item wide"><div class="k">Status</div><div class="v">'+
+            '<select class="status" data-id="'+q.id+'">'+
+            ['new','contacted','booked','archived'].map(function(s){
+              return '<option'+(s===q.status?' selected':'')+'>'+s+'</option>';
+            }).join('')+'</select></div></div>'+
+          '</div></td>';
+        tr.addEventListener('click', function(){
+          var show = dt.style.display === 'none';
+          if (openRow && openRow !== dt) openRow.style.display = 'none';
+          dt.style.display = show ? '' : 'none';
+          openRow = show ? dt : null;
+        });
+        dt.querySelector('select').addEventListener('change', async function(ev){
+          ev.stopPropagation();
+          await fetch('/api/inquiries/'+q.id, {method:'PATCH', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({status: ev.target.value})});
+          tr.querySelector('.badge').className = 'badge '+ev.target.value;
+          tr.querySelector('.badge').textContent = ev.target.value;
+        });
+        tb.appendChild(tr); tb.appendChild(dt);
+      });
+
+      var vb = document.getElementById('visitsBody');
+      vb.innerHTML = '';
+      document.getElementById('visEmpty').style.display = d.visits.length ? 'none':'block';
+      d.visits.slice(0,50).forEach(function(v){
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>'+fmt(v.time)+'</td>'+
+          '<td>Visitor '+esc(shortId(v.visitorId))+'<div class="muted">'+esc(v.ip)+'</div></td>'+
+          '<td class="hide-sm">'+(v.referrer ? esc(v.referrer) : '<span class="muted">direct</span>')+'</td>'+
+          '<td class="hide-sm">'+device(v.userAgent)+'</td>';
+        vb.appendChild(tr);
+      });
+    }catch(e){ console.error(e); }
+  }
+  function item(k,v){
+    return '<div class="item"><div class="k">'+esc(k)+'</div><div class="v">'+(v?esc(v):'<span class="muted">—</span>')+'</div></div>';
+  }
+  load();
+  setInterval(load, 30000);
+})();
+</script>
+</body>
+</html>
