@@ -18,7 +18,7 @@
     background:repeating-linear-gradient(90deg,var(--cream) 0 26px,var(--cream-stripe) 26px 52px);min-height:100vh}
   .wrap{max-width:1100px;margin:0 auto;padding:38px 20px 80px}
   header{display:flex;align-items:center;gap:18px;margin-bottom:30px;flex-wrap:wrap}
-  header svg{width:74px;height:74px;flex:none}
+  header svg,header img{width:74px;height:74px;flex:none}
   header .t h1{font-family:'Cormorant Garamond',serif;font-weight:600;letter-spacing:.25em;text-transform:uppercase;font-size:1.25rem;color:var(--green)}
   header .t .s{font-family:'Great Vibes',cursive;font-size:1.7rem;color:var(--green);line-height:1.1}
   header .right{margin-left:auto;font-size:.8rem;color:var(--green-soft)}
@@ -72,6 +72,7 @@
 <body>
 <div class="lock" id="lock">
   <div class="box">
+    <img src="/logo.png" alt="" style="width:84px;height:84px;margin-bottom:14px">
     <div class="t1">Holly&#39;s Dashboard</div>
     <div class="t2">Tampa Bay Mahj</div>
     <form id="lockForm">
@@ -84,19 +85,7 @@
 
 <div class="wrap">
   <header>
-    <svg viewBox="0 0 200 200" role="img" aria-label="Tampa Bay Mahj logo">
-      <defs>
-        <pattern id="stripes" width="16" height="16" patternUnits="userSpaceOnUse">
-          <rect width="16" height="16" fill="#F7F2E4"/><rect width="8" height="16" fill="#EFE7CC"/>
-        </pattern>
-      </defs>
-      <circle cx="100" cy="100" r="98" fill="#C9A24B"/>
-      <circle cx="100" cy="100" r="96" fill="url(#stripes)"/>
-      <path d="M 100.0 38.0 A 16.3 16.3 0 0 1 123.7 42.7 A 16.3 16.3 0 0 1 143.8 56.2 A 16.3 16.3 0 0 1 157.3 76.3 A 16.3 16.3 0 0 1 162.0 100.0 A 16.3 16.3 0 0 1 157.3 123.7 A 16.3 16.3 0 0 1 143.8 143.8 A 16.3 16.3 0 0 1 123.7 157.3 A 16.3 16.3 0 0 1 100.0 162.0 A 16.3 16.3 0 0 1 76.3 157.3 A 16.3 16.3 0 0 1 56.2 143.8 A 16.3 16.3 0 0 1 42.7 123.7 A 16.3 16.3 0 0 1 38.0 100.0 A 16.3 16.3 0 0 1 42.7 76.3 A 16.3 16.3 0 0 1 56.2 56.2 A 16.3 16.3 0 0 1 76.3 42.7 A 16.3 16.3 0 0 1 100.0 38.0 Z"
-        fill="#FDFBF2" stroke="#4C5B40" stroke-width="2.5"/>
-      <text x="100" y="88" text-anchor="middle" font-family="'Cormorant Garamond',serif" font-size="15" letter-spacing="3.5" fill="#4C5B40" font-weight="600">TAMPA BAY</text>
-      <text x="100" y="134" text-anchor="middle" font-family="'Great Vibes',cursive" font-size="46" fill="#4C5B40">Mahj</text>
-    </svg>
+    <img src="/logo.png" alt="Tampa Bay Mahj logo">
     <div class="t">
       <h1>Holly&#39;s Dashboard</h1>
       <div class="s">Tampa Bay Mahj</div>

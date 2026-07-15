@@ -166,21 +166,7 @@
 
 <div class="wrap">
   <header>
-    <svg class="logo" viewBox="0 0 200 200" role="img" aria-label="Tampa Bay Mahj logo">
-      <defs>
-        <pattern id="stripes" width="16" height="16" patternUnits="userSpaceOnUse">
-          <rect width="16" height="16" fill="#F7F2E4"/>
-          <rect width="8" height="16" fill="#EFE7CC"/>
-        </pattern>
-        <clipPath id="circleClip"><circle cx="100" cy="100" r="96"/></clipPath>
-      </defs>
-      <circle cx="100" cy="100" r="98" fill="#C9A24B"/>
-      <circle cx="100" cy="100" r="96" fill="url(#stripes)"/>
-      <path d="M 100.0 38.0 A 16.3 16.3 0 0 1 123.7 42.7 A 16.3 16.3 0 0 1 143.8 56.2 A 16.3 16.3 0 0 1 157.3 76.3 A 16.3 16.3 0 0 1 162.0 100.0 A 16.3 16.3 0 0 1 157.3 123.7 A 16.3 16.3 0 0 1 143.8 143.8 A 16.3 16.3 0 0 1 123.7 157.3 A 16.3 16.3 0 0 1 100.0 162.0 A 16.3 16.3 0 0 1 76.3 157.3 A 16.3 16.3 0 0 1 56.2 143.8 A 16.3 16.3 0 0 1 42.7 123.7 A 16.3 16.3 0 0 1 38.0 100.0 A 16.3 16.3 0 0 1 42.7 76.3 A 16.3 16.3 0 0 1 56.2 56.2 A 16.3 16.3 0 0 1 76.3 42.7 A 16.3 16.3 0 0 1 100.0 38.0 Z"
-        fill="#FDFBF2" stroke="#4C5B40" stroke-width="2.5"/>
-      <text x="100" y="88" text-anchor="middle" font-family="'Cormorant Garamond',serif" font-size="15" letter-spacing="3.5" fill="#4C5B40" font-weight="600">TAMPA BAY</text>
-      <text x="100" y="134" text-anchor="middle" font-family="'Great Vibes',cursive" font-size="46" fill="#4C5B40">Mahj</text>
-    </svg>
+    <img class="logo" src="/logo.png" alt="Tampa Bay Mahj logo">
     <h1>Tampa Bay Mahj</h1>
     <div class="script">with Holly Lewis</div>
     <p class="tagline">Elevated Mahjong Experiences &nbsp;•&nbsp; <b>Tampa&nbsp;|&nbsp;St.&nbsp;Pete</b></p>
@@ -234,20 +220,20 @@
     </fieldset>
 
     <fieldset>
-      <legend><span class="tile num">叁</span> Where We&#39;re Playing</legend>
+      <legend><span class="tile num">叁</span> Where We&#39;re Playing <span style="font-family:'Jost',sans-serif;font-size:.75rem;letter-spacing:.14em;color:#9AA089;font-weight:400;text-transform:uppercase">Optional</span></legend>
       <div class="grid">
-        <div class="full"><label for="locationName">Event Location <span class="req">*</span></label>
-          <input id="locationName" name="locationName" placeholder="Home, clubhouse, restaurant, office…" required></div>
-        <div class="full"><label for="streetAddress">Street Address <span class="req">*</span></label>
-          <input id="streetAddress" name="streetAddress" autocomplete="street-address" required></div>
+        <div class="full"><label for="locationName">Event Location</label>
+          <input id="locationName" name="locationName" placeholder="Home, clubhouse, restaurant, office…"></div>
+        <div class="full"><label for="streetAddress">Street Address</label>
+          <input id="streetAddress" name="streetAddress" autocomplete="street-address"></div>
       </div>
       <div class="grid-3" style="margin-top:18px">
-        <div><label for="city">City <span class="req">*</span></label>
-          <input id="city" name="city" autocomplete="address-level2" required></div>
-        <div><label for="state">State <span class="req">*</span></label>
-          <input id="state" name="state" value="FL" autocomplete="address-level1" required></div>
-        <div><label for="zip">Zip Code <span class="req">*</span></label>
-          <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code" required></div>
+        <div><label for="city">City</label>
+          <input id="city" name="city" autocomplete="address-level2"></div>
+        <div><label for="state">State</label>
+          <input id="state" name="state" value="FL" autocomplete="address-level1"></div>
+        <div><label for="zip">Zip Code</label>
+          <input id="zip" name="zip" inputmode="numeric" autocomplete="postal-code"></div>
       </div>
     </fieldset>
 
@@ -335,7 +321,7 @@
     });
     document.getElementById('rackCount').textContent = n;
     var counter = document.querySelector('.rack-count');
-    if (n === FIELDS.length) counter.innerHTML = '<b>14 of 14</b> — that&#39;s a winning hand! Hit the button 🀄';
+    if (form.checkValidity()) counter.innerHTML = n === FIELDS.length ? '<b>14 of 14</b> — that&#39;s a winning hand! Hit the button 🀄' : '<b>' + n + ' of 14</b> — enough to declare! (Optional tiles score bonus points 🀄)';
   }
 
   // ---- flying tile: input -> rack slot ----
