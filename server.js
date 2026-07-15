@@ -61,6 +61,13 @@ function clean(v, max = 2000) {
   return v.trim().slice(0, max);
 }
 
+// ---------- dashboard auth ----------
+const DASH_PASS = process.env.DASHBOARD_PASSWORD || 'EastWind88';
+const AUTH_TOKEN = crypto.createHash('sha256').update('tbm-salt-2026|' + DASH_PASS).digest('hex');
+function isAuthed(req) {
+  return parseCookies(req).tbm_auth === AUTH_TOKEN;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
   const pathname = url.pathname;
@@ -131,8 +138,25 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // login for dashboard
+  if (req.method === 'POST' && pathname === '/api/login') {
+    try {
+      const b = JSON.parse((await readBody(req)) || '{}');
+      if (typeof b.password === 'string' && b.password === DASH_PASS) {
+        send(res, 200, JSON.stringify({ ok: true }), {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'tbm_auth=' + AUTH_TOKEN + '; Max-Age=1209600; Path=/; HttpOnly; SameSite=Lax',
+        });
+      } else {
+        sendJSON(res, 401, { ok: false, error: 'Wrong password' });
+      }
+    } catch { sendJSON(res, 400, { ok: false }); }
+    return;
+  }
+
   // dashboard data
   if (req.method === 'GET' && pathname === '/api/dashboard') {
+    if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
     const uniqueVisitors = new Set(db.visits.map((v) => v.visitorId)).size;
     const formVisits = db.visits.filter((v) => v.page === '/' || v.page === '/index.html');
     sendJSON(res, 200, {
@@ -150,6 +174,7 @@ const server = http.createServer(async (req, res) => {
 
   // update inquiry status
   if (req.method === 'PATCH' && pathname.startsWith('/api/inquiries/')) {
+    if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
     try {
       const id = pathname.split('/').pop();
       const b = JSON.parse((await readBody(req)) || '{}');
