@@ -53,10 +53,35 @@
   .muted{color:#9AA089;font-size:.8rem}
   .visits td{font-size:.82rem}
   .refresh{font-size:.78rem;color:var(--green-soft);margin-top:8px;text-align:right}
+  .lock{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+    background:repeating-linear-gradient(90deg,var(--cream) 0 26px,var(--cream-stripe) 26px 52px)}
+  .lock .box{background:var(--white);border:1px solid var(--gold-soft);border-radius:20px;box-shadow:var(--shadow);
+    padding:44px 40px;text-align:center;max-width:360px;width:90%}
+  .lock .box .t1{font-family:'Cormorant Garamond',serif;letter-spacing:.22em;text-transform:uppercase;font-size:1.05rem;color:var(--green)}
+  .lock .box .t2{font-family:'Great Vibes',cursive;font-size:2rem;color:var(--green);margin-bottom:18px}
+  .lock input{width:100%;padding:13px 15px;font-family:'Jost',sans-serif;font-size:1rem;text-align:center;
+    background:var(--cream);border:1px solid #E2D9BE;border-radius:10px;outline:none;margin-bottom:12px}
+  .lock input:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,162,75,.16)}
+  .lock button{width:100%;font-family:'Jost',sans-serif;font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-size:.9rem;
+    color:var(--cream);background:linear-gradient(160deg,var(--green),var(--green-dark));border:none;border-radius:50px;
+    padding:13px;cursor:pointer}
+  .lock .err{color:var(--red);font-size:.85rem;margin-top:10px;min-height:1.2em}
   @media(max-width:700px){ .hide-sm{display:none} }
 </style>
 </head>
 <body>
+<div class="lock" id="lock">
+  <div class="box">
+    <div class="t1">Holly&#39;s Dashboard</div>
+    <div class="t2">Tampa Bay Mahj</div>
+    <form id="lockForm">
+      <input type="password" id="lockPass" placeholder="Password" autocomplete="current-password" autofocus>
+      <button type="submit">Unlock</button>
+      <div class="err" id="lockErr"></div>
+    </form>
+  </div>
+</div>
+
 <div class="wrap">
   <header>
     <svg viewBox="0 0 200 200" role="img" aria-label="Tampa Bay Mahj logo">
@@ -133,6 +158,8 @@
   async function load(){
     try{
       var r = await fetch('/api/dashboard');
+      if (r.status === 401) { document.getElementById('lock').style.display = 'flex'; return; }
+      document.getElementById('lock').style.display = 'none';
       var d = await r.json();
       document.getElementById('stVisits').textContent = d.stats.totalVisits;
       document.getElementById('stUnique').textContent = d.stats.uniqueVisitors;
@@ -202,6 +229,13 @@
   function item(k,v){
     return '<div class="item"><div class="k">'+esc(k)+'</div><div class="v">'+(v?esc(v):'<span class="muted">—</span>')+'</div></div>';
   }
+  document.getElementById('lockForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var pw = document.getElementById('lockPass').value;
+    var r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pw})});
+    if (r.ok) { document.getElementById('lockErr').textContent=''; load(); }
+    else { document.getElementById('lockErr').textContent = 'Wrong password — try again.'; }
+  });
   load();
   setInterval(load, 30000);
 })();
