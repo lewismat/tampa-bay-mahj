@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your profile — Tampa Bay Mahj</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Karla:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--cream:#F7F2E4;--cream-2:#EFE7CC;--sage:#4C5B40;--sage-soft:#6B7A5C;--sage-dk:#3B4832;--gold:#C9A24B;--ink:#2C3327;--ink-soft:#5D6656;--tile:#FBF8EF;--tile-edge:#DED3B4;--display:'Cormorant Garamond',Georgia,serif;--body:'Karla',system-ui,sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:var(--cream);color:var(--ink);min-height:100vh;
+background-image:repeating-linear-gradient(90deg,rgba(222,211,180,.16) 0 2px,transparent 2px 26px)}
+.nav{background:var(--sage-dk);color:var(--cream);display:flex;align-items:center;gap:18px;padding:12px 22px;flex-wrap:wrap}
+.nav .brand{font-family:var(--display);font-weight:700;font-size:1.15rem;margin-right:auto}
+.nav a,.nav button{color:var(--cream);text-decoration:none;font-size:.85rem;font-weight:500;background:none;border:none;cursor:pointer;font-family:var(--body);opacity:.85}
+.nav a:hover,.nav button:hover{opacity:1}
+.nav a.active{color:var(--gold);opacity:1;font-weight:700}
+.wrap{max-width:680px;margin:0 auto;padding:28px 22px}
+h1{font-family:var(--display);font-weight:700;font-size:2rem;color:var(--sage-dk)}
+.sub{color:var(--ink-soft);font-weight:300;margin-bottom:20px}
+.panel{background:var(--tile);border:1px solid var(--tile-edge);border-bottom:5px solid var(--gold);border-radius:16px;padding:24px;box-shadow:0 10px 26px rgba(59,72,50,.08)}
+label{display:block;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--sage);font-weight:700;margin:14px 0 5px}
+input,textarea{width:100%;padding:11px 12px;border:1px solid var(--tile-edge);border-radius:10px;background:#fff;font-family:var(--body);font-size:1rem;color:var(--sage-dk)}
+textarea{min-height:90px;resize:vertical}
+input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+.row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:180px}
+button.save{margin-top:22px;padding:12px 22px;border:none;border-radius:10px;background:var(--sage);color:var(--cream);font-weight:700;font-size:1rem;cursor:pointer}
+button.save:hover{background:var(--sage-dk)}
+.msg{margin-left:14px;font-size:.9rem}.msg.ok{color:var(--sage)}.msg.err{color:#B3542E}
+</style></head>
+<body>
+<div class="nav"><span class="brand">Tampa Bay Mahj</span>
+  <a href="/students">Students</a><a href="/profile" class="active">My profile</a>
+  <a href="/card" target="_blank">View public card ↗</a><button id="logout">Log out</button></div>
+<div class="wrap">
+  <h1>Your profile card</h1>
+  <p class="sub">This is the personalized card people see at <b>/card</b> — share it anywhere.</p>
+  <div class="panel">
+    <div class="row"><div><label>Display name</label><input id="display_name" placeholder="Holly"></div>
+      <div><label>Tagline</label><input id="tagline" placeholder="Your friendly Tampa Bay mahjong teacher"></div></div>
+    <label>Photo URL</label><input id="photo_url" placeholder="https://…/holly.jpg">
+    <label>About you (bio)</label><textarea id="bio"></textarea>
+    <label>What you offer</label><textarea id="offerings" placeholder="Private lessons, group classes, private parties…"></textarea>
+    <label>Credentials</label><textarea id="credentials"></textarea>
+    <div class="row"><div><label>Contact email</label><input id="email"></div><div><label>Phone</label><input id="phone"></div></div>
+    <div class="row"><div><label>Instagram URL</label><input id="instagram"></div><div><label>ShopMy URL</label><input id="shopmy"></div></div>
+    <label>Website</label><input id="website">
+    <div><button class="save" id="save">Save card</button><span class="msg" id="msg"></span></div>
+  </div>
+</div>
+<script>
+var FIELDS=['display_name','tagline','photo_url','bio','offerings','credentials','email','phone','instagram','shopmy','website'];
+async function guard(){var s=await fetch('/api/auth/state').then(r=>r.json());if(!s.authed){location.href='/login';return false;}return true;}
+async function load(){var p=(await fetch('/api/profile').then(r=>r.json())).profile||{};FIELDS.forEach(function(f){if(p[f]!=null)document.getElementById(f).value=p[f];});}
+document.getElementById('save').addEventListener('click',async function(){
+  var msg=document.getElementById('msg');msg.className='msg';msg.textContent='Saving…';
+  var body={};FIELDS.forEach(function(f){body[f]=document.getElementById(f).value;});
+  var d=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  if(d.ok){msg.className='msg ok';msg.textContent='Saved ✓';}else{msg.className='msg err';msg.textContent=d.error||'Error';}
+});
+document.getElementById('logout').addEventListener('click',async function(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';});
+(async function(){if(await guard())load();})();
+</script>
+</body></html>

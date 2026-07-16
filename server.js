@@ -285,6 +285,9 @@ app.get('/dashboard', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'dashboar
 // static files (serves / -> index.html, and everything in public/)
 app.use(express.static(PUBLIC_DIR));
 
+// accounts, profile card, student CRM
+app.use(require('./accounts'));
+
 // booking + waitlist routes
 app.use(require('./booking'));
 
