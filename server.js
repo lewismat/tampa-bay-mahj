@@ -168,6 +168,7 @@ function isAuthed(req) { return parseCookies(req).tbm_auth === AUTH_TOKEN; }
 // ---------- Express app ----------
 const express = require('express');
 const app = express();
+const auth = require('./auth');
 
 // record a visit
 app.post('/api/track', async (req, res) => {
@@ -248,8 +249,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // dashboard data
-app.get('/api/dashboard', async (req, res) => {
-  if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
+app.get('/api/dashboard', auth.requireAuth, async (req, res) => {
   try {
     const { inquiries, visits } = await store.getAll();
     const uniqueVisitors = new Set(visits.map((v) => v.visitorId)).size;
@@ -267,8 +267,7 @@ app.get('/api/dashboard', async (req, res) => {
 });
 
 // update inquiry status
-app.patch('/api/inquiries/:id', async (req, res) => {
-  if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
+app.patch('/api/inquiries/:id', auth.requireAuth, async (req, res) => {
   try {
     const id = req.params.id;
     const b = JSON.parse((await readBody(req)) || '{}');

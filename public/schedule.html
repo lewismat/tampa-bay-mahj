@@ -66,6 +66,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
 </style>
 </head>
 <body>
+<style>
+.tbmnav{background:#3B4832;color:#F7F2E4;display:flex;align-items:center;gap:16px;padding:11px 20px;flex-wrap:wrap;font-family:'Karla',system-ui,-apple-system,sans-serif}
+.tbmnav .brand{font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;font-size:1.15rem;margin-right:auto}
+.tbmnav a{color:#F7F2E4;text-decoration:none;font-size:.85rem;font-weight:500;opacity:.88;cursor:pointer}
+.tbmnav a:hover{opacity:1}.tbmnav a.active{color:#C9A24B;opacity:1;font-weight:700}
+</style>
+<div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule" class="active">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
+<script>document.getElementById("tbmLogout").addEventListener("click",function(){fetch("/api/auth/logout",{method:"POST"}).then(function(){location.href="/login";});});</script>
 <div class="wrap">
   <h1>Scheduling</h1>
   <p class="sub">Open a date and it shows up on the booking page immediately.</p>
@@ -126,6 +134,7 @@ async function load(){
   const el=document.getElementById('list');
   try{
     const r=await fetch('/api/admin/slots');
+    if(r.status===401){ location.href='/login'; return; }
     if(!r.ok) throw new Error('Could not load your calendar.');
     const slots=await r.json();
     if(!slots.length){ el.innerHTML='<p class="empty">Nothing on the calendar yet. Open a date above.</p>'; return; }

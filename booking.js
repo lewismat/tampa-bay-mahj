@@ -13,6 +13,7 @@
 const express = require('express');
 const path = require('path');
 const mail = require('./email');
+const auth = require('./auth');
 const router = express.Router();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -409,11 +410,11 @@ router.get('/booking/:token/calendar.ics', async (req, res) => {
 
 /* ------------------------------------------------------- Holly-only API */
 
-router.get('/schedule', requireHolly, (req, res) =>
+router.get('/schedule', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'schedule.html'))
 );
 
-router.get('/api/admin/slots', requireHolly, async (req, res) => {
+router.get('/api/admin/slots', auth.requireAuth, async (req, res) => {
   try {
     await doSweep();
     const rows = await sb('slots?select=*,bookings(*),waitlist(*)&order=starts_at.asc');
@@ -423,7 +424,7 @@ router.get('/api/admin/slots', requireHolly, async (req, res) => {
   }
 });
 
-router.post('/api/admin/slots', requireHolly, async (req, res) => {
+router.post('/api/admin/slots', auth.requireAuth, async (req, res) => {
   try {
     const b = req.body || {};
     if (!TYPE_LABEL[b.slot_type]) return res.status(400).json({ error: 'Pick what kind of session this is.' });
@@ -449,7 +450,7 @@ router.post('/api/admin/slots', requireHolly, async (req, res) => {
   }
 });
 
-router.patch('/api/admin/slots/:id', requireHolly, async (req, res) => {
+router.patch('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
   try {
     const patch = {};
     if ('published' in req.body) patch.published = !!req.body.published;
@@ -473,7 +474,7 @@ router.patch('/api/admin/slots/:id', requireHolly, async (req, res) => {
   }
 });
 
-router.delete('/api/admin/slots/:id', requireHolly, async (req, res) => {
+router.delete('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
   try {
     const [slot] = await sb(`slots?select=seats_taken,seats_held&id=eq.${encodeURIComponent(req.params.id)}`);
     if (slot?.seats_taken > 0 || slot?.seats_held > 0) {

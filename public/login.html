@@ -42,7 +42,7 @@ var setup=false;
 async function init(){
   try{
     var s=await fetch('/api/auth/state').then(r=>r.json());
-    if(s.authed){ location.href='/students'; return; }
+    if(s.authed){ location.href='/dashboard'; return; }
     if(s.needsSetup){
       setup=true;
       document.getElementById('title').textContent='Set up your account';
@@ -70,7 +70,7 @@ document.getElementById('form').addEventListener('submit',async function(ev){
     var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var d=await r.json();
     if(!d.ok){ msg.className='msg err'; msg.textContent=d.error||'Something went wrong.'; return; }
-    msg.className='msg ok'; msg.textContent='Welcome!'; location.href='/students';
+    msg.className='msg ok'; msg.textContent='Welcome!'; location.href='/dashboard';
   }catch(e){ msg.className='msg err'; msg.textContent='Network error.'; }
 });
 init();
