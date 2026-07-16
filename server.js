@@ -99,6 +99,23 @@ const store = {
   },
 };
 
+// ---------- inquiries also become CRM leads ----------
+async function createLeadFromInquiry(q) {
+  if (!USE_SB) return;
+  try {
+    const email = (q.email || '').toLowerCase();
+    if (email) {
+      const ex = await sb('GET', 'students?select=id&email=eq.' + encodeURIComponent(email) + '&limit=1');
+      if (ex && ex[0]) return; // already known
+    }
+    await sb('POST', 'students', {
+      first_name: q.firstName, last_name: q.lastName, email, phone: q.phone,
+      status: 'lead', tags: 'lead', source: 'website inquiry',
+      notes: (q.eventType || '') + (q.eventDate ? ' — ' + q.eventDate : ''),
+    });
+  } catch (e) { console.error('lead-from-inquiry:', e.message); }
+}
+
 // ---------- email notification (fire and forget) ----------
 function notifyEmail(q) {
   const payload = {

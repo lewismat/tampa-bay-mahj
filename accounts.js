@@ -187,6 +187,12 @@ router.put('/api/profile', requireAuth, async (req, res) => {
   try {
     const patch = { updated_at: new Date().toISOString() };
     for (const f of PROFILE_FIELDS) if (f in req.body) patch[f] = clean(req.body[f], 4000);
+    if (Array.isArray(req.body.links)) patch.links = req.body.links.slice(0, 24)
+      .map((l) => ({ label: clean(l && l.label, 60), icon: clean(l && l.icon, 24), url: clean(l && l.url, 600) }))
+      .filter((l) => l.label && l.url);
+    if (Array.isArray(req.body.details)) patch.details = req.body.details.slice(0, 24)
+      .map((d) => ({ label: clean(d && d.label, 60), icon: clean(d && d.icon, 24), value: clean(d && d.value, 600) }))
+      .filter((d) => d.label || d.value);
     await sb(`profile?id=eq.holly`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
@@ -210,7 +216,7 @@ router.get('/api/students', requireAuth, async (req, res) => {
       filters += `&or=(first_name.ilike.${enc(like)},last_name.ilike.${enc(like)},email.ilike.${enc(like)},tags.ilike.${enc(like)})`;
     }
     if (status) filters += `&status=eq.${status}`;
-    filters += '&order=updated_at.desc&limit=500';
+    filters += '&archived=eq.false&order=updated_at.desc&limit=500';
     res.json({ ok: true, students: await sb('students?' + filters) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -277,6 +283,16 @@ router.post('/api/lead', async (req, res) => {
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
+// Archive (soft-remove) or restore a student/lead.
+router.post('/api/students/:id/archive', requireAuth, async (req, res) => {
+  try {
+    const archived = req.body.archived !== false;
+    await sb(`students?id=eq.${enc(req.params.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ archived, updated_at: new Date().toISOString() }) });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 // Turn a lead into a student. Called manually now; the Stripe payment
 // handler will call this automatically once a lesson is actually paid.
 router.post('/api/students/:id/convert', requireAuth, async (req, res) => {
@@ -293,6 +309,6 @@ router.get('/login',    page('login.html'));
 router.get('/profile',  page('profile.html'));
 router.get('/students', page('students.html'));
 router.get('/card',     page('card.html'));
-router.get('/request',  page('request.html'));
+router.get('/request',  (req, res) => res.redirect('/'));
 
 module.exports = router;

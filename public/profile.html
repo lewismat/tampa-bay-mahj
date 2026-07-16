@@ -1,62 +1,168 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Your profile — Tampa Bay Mahj</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Karla:wght@300;400;500;700&display=swap" rel="stylesheet">
+<title>Your card — Tampa Bay Mahj</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Karla:wght@300;400;500;700&family=Great+Vibes&display=swap" rel="stylesheet">
 <style>
-:root{--cream:#F7F2E4;--cream-2:#EFE7CC;--sage:#4C5B40;--sage-soft:#6B7A5C;--sage-dk:#3B4832;--gold:#C9A24B;--ink:#2C3327;--ink-soft:#5D6656;--tile:#FBF8EF;--tile-edge:#DED3B4;--display:'Cormorant Garamond',Georgia,serif;--body:'Karla',system-ui,sans-serif;}
+:root{--cream:#F7F2E4;--cream-2:#EFE7CC;--sage:#4C5B40;--sage-soft:#6B7A5C;--sage-dk:#3B4832;--gold:#C9A24B;--gold-soft:#E3CD96;--gold-dk:#8A6D14;--red:#B3542E;--ink:#2C3327;--ink-soft:#5D6656;--tile:#FBF8EF;--tile-edge:#DED3B4;--display:'Cormorant Garamond',Georgia,serif;--script:'Great Vibes',cursive;--body:'Karla',system-ui,sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--body);background:var(--cream);color:var(--ink);min-height:100vh;
-background-image:repeating-linear-gradient(90deg,rgba(222,211,180,.16) 0 2px,transparent 2px 26px)}
-.nav{background:var(--sage-dk);color:var(--cream);display:flex;align-items:center;gap:18px;padding:12px 22px;flex-wrap:wrap}
-.nav .brand{font-family:var(--display);font-weight:700;font-size:1.15rem;margin-right:auto}
-.nav a,.nav button{color:var(--cream);text-decoration:none;font-size:.85rem;font-weight:500;background:none;border:none;cursor:pointer;font-family:var(--body);opacity:.85}
-.nav a:hover,.nav button:hover{opacity:1}
-.nav a.active{color:var(--gold);opacity:1;font-weight:700}
-.wrap{max-width:680px;margin:0 auto;padding:28px 22px}
-h1{font-family:var(--display);font-weight:700;font-size:2rem;color:var(--sage-dk)}
-.sub{color:var(--ink-soft);font-weight:300;margin-bottom:20px}
-.panel{background:var(--tile);border:1px solid var(--tile-edge);border-bottom:5px solid var(--gold);border-radius:16px;padding:24px;box-shadow:0 10px 26px rgba(59,72,50,.08)}
-label{display:block;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--sage);font-weight:700;margin:14px 0 5px}
+body{font-family:var(--body);background:var(--cream);color:var(--ink);min-height:100vh;background-image:repeating-linear-gradient(90deg,rgba(222,211,180,.18) 0 3px,transparent 3px 30px)}
+.tbmnav{background:var(--sage-dk);color:var(--cream);display:flex;align-items:center;gap:16px;padding:11px 22px;flex-wrap:wrap}
+.tbmnav .brand{font-family:var(--display);font-weight:700;font-size:1.15rem;margin-right:auto}
+.tbmnav a{color:var(--cream);text-decoration:none;font-size:.85rem;font-weight:500;opacity:.85;cursor:pointer}
+.tbmnav a:hover{opacity:1}.tbmnav a.active{color:var(--gold);opacity:1;font-weight:700}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 22px;display:grid;grid-template-columns:1fr 420px;gap:26px;align-items:start}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.preview{display:none}}
+.head{margin-bottom:6px}
+h1{font-family:var(--display);font-weight:700;font-size:2.1rem;color:var(--sage-dk)}
+.sub{color:var(--ink-soft);font-weight:300;margin-bottom:16px}
+.panel{background:var(--tile);border:1px solid var(--tile-edge);border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 10px 26px rgba(59,72,50,.07)}
+.panel h2{font-family:var(--display);font-size:1.4rem;color:var(--sage-dk);font-weight:700;display:flex;align-items:center;gap:8px}
+.panel .note{color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 14px}
+label{display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sage);font-weight:700;margin:12px 0 5px}
 input,textarea{width:100%;padding:11px 12px;border:1px solid var(--tile-edge);border-radius:10px;background:#fff;font-family:var(--body);font-size:1rem;color:var(--sage-dk)}
-textarea{min-height:90px;resize:vertical}
+textarea{min-height:80px;resize:vertical}
 input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold)}
-.row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:180px}
-button.save{margin-top:22px;padding:12px 22px;border:none;border-radius:10px;background:var(--sage);color:var(--cream);font-weight:700;font-size:1rem;cursor:pointer}
-button.save:hover{background:var(--sage-dk)}
-.msg{margin-left:14px;font-size:.9rem}.msg.ok{color:var(--sage)}.msg.err{color:#B3542E}
+.two{display:flex;gap:14px;flex-wrap:wrap}.two>div{flex:1;min-width:170px}
+.rows{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--tile-edge);border-radius:12px;padding:8px}
+.iconbtn{flex:none;width:44px;height:44px;border-radius:10px;border:1px solid var(--tile-edge);background:var(--cream);color:var(--gold-dk);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.iconbtn:hover{border-color:var(--gold)}
+.row .fields{flex:1;display:flex;gap:8px;flex-wrap:wrap}
+.row .fields input{flex:1;min-width:120px;padding:9px 10px;font-size:.92rem}
+.del{flex:none;width:32px;height:32px;border:none;background:none;color:var(--red);font-size:1.2rem;cursor:pointer;border-radius:8px;opacity:.7}
+.del:hover{opacity:1;background:rgba(179,84,46,.08)}
+.add{margin-top:12px;width:100%;padding:11px;border:1.5px dashed var(--sage-soft);border-radius:11px;background:none;color:var(--sage);font-weight:700;font-family:var(--body);cursor:pointer;font-size:.9rem}
+.add:hover{border-color:var(--gold);color:var(--gold-dk)}
+.savebar{position:sticky;bottom:0;background:linear-gradient(180deg,transparent,var(--cream) 40%);padding:16px 0 4px;display:flex;align-items:center;gap:14px}
+.save{padding:13px 28px;border:none;border-radius:12px;background:linear-gradient(160deg,var(--sage),var(--sage-dk));color:var(--cream);font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 8px 18px rgba(59,72,50,.2)}
+.save:hover{filter:brightness(1.06)}
+.msg{font-size:.92rem}.msg.ok{color:var(--sage)}.msg.err{color:var(--red)}
+.preview{position:sticky;top:22px}
+.preview .plabel{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sage-soft);font-weight:700;margin-bottom:8px;text-align:center}
+.preview iframe{width:100%;height:640px;border:1px solid var(--tile-edge);border-radius:20px;background:var(--cream);box-shadow:0 14px 34px rgba(59,72,50,.12)}
+/* icon picker overlay */
+.pick{position:fixed;inset:0;background:rgba(44,51,39,.4);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.pick.open{display:flex}
+.pick .box{background:var(--tile);border-radius:18px;padding:22px;max-width:360px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.pick h3{font-family:var(--display);font-size:1.3rem;color:var(--sage-dk);margin-bottom:12px;text-align:center}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pgrid button{aspect-ratio:1;border:1px solid var(--tile-edge);border-radius:12px;background:#fff;color:var(--gold-dk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;font-family:var(--body);font-size:.6rem;color:var(--ink-soft)}
+.pgrid button:hover{border-color:var(--gold);background:var(--cream)}
+.pgrid button .tbmic{color:var(--gold-dk)}
+.tbmic{display:inline-block;vertical-align:middle}
 </style></head>
 <body>
-<div class="nav"><span class="brand">Tampa Bay Mahj</span>
-  <a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a>
-  <a href="/students">Students</a><a href="/profile" class="active">Profile</a>
-  <a href="/card" target="_blank">View public card ↗</a><button id="logout">Log out</button></div>
+<div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile" class="active">Profile</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
 <div class="wrap">
-  <h1>Your profile card</h1>
-  <p class="sub">This is the personalized card people see at <b>/card</b> — share it anywhere.</p>
-  <div class="panel">
-    <div class="row"><div><label>Display name</label><input id="display_name" placeholder="Holly"></div>
-      <div><label>Tagline</label><input id="tagline" placeholder="Your friendly Tampa Bay mahjong teacher"></div></div>
-    <label>Photo URL</label><input id="photo_url" placeholder="https://…/holly.jpg">
-    <label>About you (bio)</label><textarea id="bio"></textarea>
-    <label>What you offer</label><textarea id="offerings" placeholder="Private lessons, group classes, private parties…"></textarea>
-    <label>Credentials</label><textarea id="credentials"></textarea>
-    <div class="row"><div><label>Contact email</label><input id="email"></div><div><label>Phone</label><input id="phone"></div></div>
-    <div class="row"><div><label>Instagram URL</label><input id="instagram"></div><div><label>ShopMy URL</label><input id="shopmy"></div></div>
-    <label>Website</label><input id="website">
-    <div><button class="save" id="save">Save card</button><span class="msg" id="msg"></span></div>
+  <div>
+    <div class="head"><h1>Your card</h1><p class="sub">Everything here shows on your public card at <b>/card</b> — add, remove, and dress it up however you like.</p></div>
+
+    <div class="panel">
+      <h2>The basics</h2>
+      <div class="two"><div><label>Display name</label><input id="display_name" placeholder="Holly Lewis"></div>
+        <div><label>Tagline</label><input id="tagline" placeholder="Elevated mahjong, Tampa &amp; St. Pete"></div></div>
+      <label>Photo URL <span style="text-transform:none;letter-spacing:0;color:var(--ink-soft);font-weight:400">(optional)</span></label><input id="photo_url" placeholder="https://…/holly.jpg">
+      <label>A little about you</label><textarea id="bio" placeholder="Warm, patient, and a little competitive — Holly has taught hundreds of players across Tampa Bay…"></textarea>
+    </div>
+
+    <div class="panel">
+      <h2>Little details</h2>
+      <p class="note">Facts on your card — where you teach, your style, anything. Pick a cute icon for each.</p>
+      <div class="rows" id="detailRows"></div>
+      <button class="add" id="addDetail">+ Add a detail</button>
+    </div>
+
+    <div class="panel">
+      <h2>Link buttons</h2>
+      <p class="note">Instagram, ShopMy, your website — any button you want on the card.</p>
+      <div class="rows" id="linkRows"></div>
+      <button class="add" id="addLink">+ Add a link</button>
+    </div>
+
+    <div class="savebar"><button class="save" id="save">Save card</button><span class="msg" id="msg"></span></div>
+  </div>
+
+  <div class="preview">
+    <div class="plabel">✦ Live preview ✦</div>
+    <iframe id="pv" src="/card" title="Card preview"></iframe>
   </div>
 </div>
+
+<div class="pick" id="pick"><div class="box"><h3>Pick an icon</h3><div class="pgrid" id="pgrid"></div></div></div>
+
+<script src="/icons.js"></script>
 <script>
-var FIELDS=['display_name','tagline','photo_url','bio','offerings','credentials','email','phone','instagram','shopmy','website'];
+var BASIC=['display_name','tagline','photo_url','bio'];
+var details=[], links=[], pickCtx=null;
+function $(id){return document.getElementById(id);}
+function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
 async function guard(){var s=await fetch('/api/auth/state').then(r=>r.json());if(!s.authed){location.href='/login';return false;}return true;}
-async function load(){var p=(await fetch('/api/profile').then(r=>r.json())).profile||{};FIELDS.forEach(function(f){if(p[f]!=null)document.getElementById(f).value=p[f];});}
-document.getElementById('save').addEventListener('click',async function(){
-  var msg=document.getElementById('msg');msg.className='msg';msg.textContent='Saving…';
-  var body={};FIELDS.forEach(function(f){body[f]=document.getElementById(f).value;});
-  var d=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
-  if(d.ok){msg.className='msg ok';msg.textContent='Saved ✓';}else{msg.className='msg err';msg.textContent=d.error||'Error';}
+
+function renderDetails(){
+  $('detailRows').innerHTML=details.map(function(d,i){
+    return '<div class="row"><button class="iconbtn" data-t="d" data-i="'+i+'">'+(window.tbmIcon(d.icon)||window.tbmIcon('flower'))+'</button>'+
+      '<div class="fields"><input placeholder="Label (e.g. Where)" data-t="d" data-k="label" data-i="'+i+'" value="'+esc(d.label)+'">'+
+      '<input placeholder="Value (e.g. Tampa &amp; St. Pete)" data-t="d" data-k="value" data-i="'+i+'" value="'+esc(d.value)+'"></div>'+
+      '<button class="del" data-t="d" data-i="'+i+'" title="Remove">×</button></div>';
+  }).join('');
+  wire('detailRows');
+}
+function renderLinks(){
+  $('linkRows').innerHTML=links.map(function(l,i){
+    return '<div class="row"><button class="iconbtn" data-t="l" data-i="'+i+'">'+(window.tbmIcon(l.icon)||window.tbmIcon('sparkle'))+'</button>'+
+      '<div class="fields"><input placeholder="Label (e.g. Instagram)" data-t="l" data-k="label" data-i="'+i+'" value="'+esc(l.label)+'">'+
+      '<input placeholder="Link (e.g. instagram.com/tampabaymahj)" data-t="l" data-k="url" data-i="'+i+'" value="'+esc(l.url)+'"></div>'+
+      '<button class="del" data-t="l" data-i="'+i+'" title="Remove">×</button></div>';
+  }).join('');
+  wire('linkRows');
+}
+function wire(containerId){
+  var c=$(containerId);
+  Array.prototype.forEach.call(c.querySelectorAll('input'),function(inp){
+    inp.addEventListener('input',function(){var arr=inp.dataset.t==='d'?details:links;arr[+inp.dataset.i][inp.dataset.k]=inp.value;});
+  });
+  Array.prototype.forEach.call(c.querySelectorAll('.iconbtn'),function(b){
+    b.addEventListener('click',function(){pickCtx={t:b.dataset.t,i:+b.dataset.i};$('pick').classList.add('open');});
+  });
+  Array.prototype.forEach.call(c.querySelectorAll('.del'),function(b){
+    b.addEventListener('click',function(){var arr=b.dataset.t==='d'?details:links;arr.splice(+b.dataset.i,1);b.dataset.t==='d'?renderDetails():renderLinks();});
+  });
+}
+// icon picker grid
+$('pgrid').innerHTML=window.TBM_ICON_KEYS.map(function(k){
+  return '<button data-k="'+k+'">'+window.tbmIcon(k)+'<span>'+esc(window.TBM_ICON_LABELS[k]||k)+'</span></button>';
+}).join('');
+Array.prototype.forEach.call($('pgrid').querySelectorAll('button'),function(b){
+  b.addEventListener('click',function(){
+    if(pickCtx){var arr=pickCtx.t==='d'?details:links;arr[pickCtx.i].icon=b.dataset.k;pickCtx.t==='d'?renderDetails():renderLinks();}
+    $('pick').classList.remove('open');
+  });
 });
-document.getElementById('logout').addEventListener('click',async function(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';});
+$('pick').addEventListener('click',function(e){if(e.target===$('pick'))$('pick').classList.remove('open');});
+
+$('addDetail').addEventListener('click',function(){details.push({icon:'flower',label:'',value:''});renderDetails();});
+$('addLink').addEventListener('click',function(){links.push({icon:'sparkle',label:'',url:''});renderLinks();});
+
+async function load(){
+  var p=(await fetch('/api/profile').then(r=>r.json())).profile||{};
+  BASIC.forEach(function(f){if(p[f]!=null)$(f).value=p[f];});
+  details=Array.isArray(p.details)?p.details:[];
+  links=Array.isArray(p.links)?p.links:[];
+  // seed a friendly starter if totally empty
+  if(!details.length) details=[{icon:'pin',label:'Where',value:'Tampa & St. Pete'}];
+  if(!links.length) links=[{icon:'instagram',label:'Instagram',url:''}];
+  renderDetails();renderLinks();
+}
+$('save').addEventListener('click',async function(){
+  var msg=$('msg');msg.className='msg';msg.textContent='Saving…';
+  var body={links:links,details:details};
+  BASIC.forEach(function(f){body[f]=$(f).value;});
+  var d=await fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  if(d.ok){msg.className='msg ok';msg.textContent='Saved ✓';$('pv').src='/card?t='+Date.now();}
+  else{msg.className='msg err';msg.textContent=d.error||'Error saving';}
+});
+$('tbmLogout').addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST'}).then(function(){location.href='/login';});});
 (async function(){if(await guard())load();})();
 </script>
 </body></html>

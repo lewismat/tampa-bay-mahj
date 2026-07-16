@@ -47,6 +47,8 @@ button.primary:hover{background:var(--sage-dk)}
 .fbtn.active{background:var(--sage);color:var(--cream);border-color:var(--sage)}
 .convert{width:100%;padding:9px;border:none;border-radius:9px;background:var(--gold);color:#2b2408;font-weight:700;cursor:pointer;font-family:var(--body)}
 .convert:hover{filter:brightness(1.05)}
+.archivebtn{margin-top:12px;width:100%;padding:9px;border:1px solid var(--tile-edge);border-radius:9px;background:#fff;color:var(--ink-soft);font-family:var(--body);font-weight:600;font-size:.82rem;cursor:pointer}
+.archivebtn:hover{border-color:var(--red);color:var(--red)}
 </style></head>
 <body>
 <div class="nav"><span class="brand">Tampa Bay Mahj</span>
@@ -109,11 +111,15 @@ async function openStudent(id){
     '<div class="row"><div><label>Skill level</label><select id="d_skill">'+skillOpts+'</select></div><div><label>Birthday</label><input id="d_birthday" type="date" value="'+esc(s.birthday||'')+'"></div></div>'+'<div class="row"><div><label>Status</label><select id="d_status"><option value="lead"'+(s.status==="lead"?' selected':'')+'>Lead</option><option value="student"'+(s.status!=="lead"?' selected':'')+'>Student</option></select></div><div>'+(s.status==="lead"?'<label>&nbsp;</label><button class="convert" id="d_convert">\u2713 Convert to student</button>':'')+'</div></div>'+
     '<label>Tags</label><input id="d_tags" value="'+esc(s.tags||'')+'">'+
     '<label>Notes</label><textarea id="d_notes">'+esc(s.notes||'')+'</textarea>'+
-    '<div><button class="primary" id="d_save">Save changes</button><span class="msg" id="d_msg"></span></div>'+
+    '<div><button class="primary" id="d_save">Save changes</button><span class="msg" id="d_msg"></span></div>'+'<button class="archivebtn" id="d_archive">Archive · remove from list</button>'+
     '<div class="hist"><h3>History</h3>'+hist+'</div>';
   var cv=document.getElementById('d_convert'); if(cv) cv.addEventListener('click',async function(){
     var r=await fetch('/api/students/'+id+'/convert',{method:'POST'}).then(x=>x.json());
     if(r.ok){loadList();openStudent(id);}
+  });
+  document.getElementById('d_archive').addEventListener('click',async function(){
+    var r=await fetch('/api/students/'+id+'/archive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({archived:true})}).then(x=>x.json());
+    if(r.ok){selId=null;document.getElementById('detail').innerHTML='<div class="empty">Archived. Pick another, or add someone new.</div>';loadList();}
   });
   document.getElementById('d_save').addEventListener('click',async function(){
     var msg=document.getElementById('d_msg');msg.className='msg';msg.textContent='Saving…';
