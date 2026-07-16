@@ -31,12 +31,33 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
 .note{background:rgba(201,162,75,.09);border:1px solid var(--gold-soft,#E3CD96);border-radius:12px;padding:13px 15px;font-size:.86rem;color:var(--ink-soft);margin-top:16px;line-height:1.55}
 .note b{color:var(--sage-dk)}
 .note a{color:var(--gold-dk);font-weight:700}
-</style></head>
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:6px}
+.swatch{border:1.5px solid var(--tile-edge);border-radius:14px;padding:12px;background:#fff;cursor:pointer;text-align:left;font-family:'Karla',sans-serif}
+.swatch.active{border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,162,75,.3)}
+.swatch .chips{display:flex;gap:5px;margin-bottom:8px}
+.swatch .chips i{width:20px;height:20px;border-radius:50%;display:block}
+.swatch .nm{font-weight:700;font-size:.86rem;color:var(--sage-dk)}
+</style><script src="/theme.js"></script>
+</head>
 <body>
 <div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/settings" class="active">Settings</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
 <div class="wrap">
   <h1>Settings</h1>
   <p class="sub">Connect Holly's tools. Keys are stored on your own server and never shown here again.</p>
+
+  <div class="panel">
+    <h2>🎨 Appearance</h2>
+    <p style="color:var(--ink-soft);font-size:.88rem;font-weight:300;margin:2px 0 6px">Pick a color theme for your workspace.</p>
+    <div class="swatches" id="swatches"></div>
+  </div>
+
+  <div class="panel">
+    <h2>🔒 Account · Password</h2>
+    <label>Current password</label><input id="pw_cur" type="password" autocomplete="current-password">
+    <label>New password</label><input id="pw_new" type="password" autocomplete="new-password">
+    <label>Confirm new password</label><input id="pw_conf" type="password" autocomplete="new-password">
+    <div class="btnrow"><button class="save" id="pw_save">Update password</button><span class="msg" id="pw_msg"></span></div>
+  </div>
 
   <div class="panel">
     <h2>💳 Payments · Stripe</h2>
@@ -69,6 +90,28 @@ $('test').addEventListener('click',async function(){
   else{msg.className='msg err';msg.textContent=d.error||'Could not connect';}
 });
 $('tbmLogout').addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST'}).then(function(){location.href='/login';});});
+// theme swatches
+(function(){
+  var cur=window.tbmCurrentTheme(), box=$('swatches');
+  box.innerHTML=Object.keys(window.TBM_THEMES).map(function(id){
+    var t=window.TBM_THEMES[id];
+    return '<button class="swatch'+(id===cur?' active':'')+'" data-id="'+id+'"><div class="chips"><i style="background:'+t.vars['--sage']+'"></i><i style="background:'+t.vars['--gold']+'"></i><i style="background:'+t.vars['--cream']+';border:1px solid #ccc"></i></div><div class="nm">'+t.name+'</div></button>';
+  }).join('');
+  Array.prototype.forEach.call(box.querySelectorAll('.swatch'),function(b){b.addEventListener('click',function(){
+    window.tbmSetTheme(b.dataset.id);
+    box.querySelectorAll('.swatch').forEach(function(x){x.classList.remove('active');});b.classList.add('active');
+  });});
+})();
+// change password
+$('pw_save').addEventListener('click',async function(){
+  var msg=$('pw_msg');msg.className='msg';
+  if($('pw_new').value!==$('pw_conf').value){msg.className='msg err';msg.textContent='New passwords do not match.';return;}
+  if($('pw_new').value.length<8){msg.className='msg err';msg.textContent='New password must be at least 8 characters.';return;}
+  msg.textContent='Updating…';
+  var d=await fetch('/api/auth/password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({current:$('pw_cur').value,new:$('pw_new').value})}).then(r=>r.json());
+  if(d.ok){msg.className='msg ok';msg.textContent='Password updated ✓';$('pw_cur').value='';$('pw_new').value='';$('pw_conf').value='';}
+  else{msg.className='msg err';msg.textContent=d.error||'Error';}
+});
 (async function(){if(await guard())loadStatus();})();
 </script>
 <script src="/sidebar.js"></script>

@@ -149,6 +149,19 @@ router.post('/api/auth/login', async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Change the signed-in user's password.
+router.post('/api/auth/password', requireAuth, async (req, res) => {
+  try {
+    const cur = String(req.body.current || ''), nw = String(req.body.new || '');
+    if (nw.length < 8) return res.status(400).json({ ok: false, error: 'New password must be at least 8 characters.' });
+    const rows = await sb(`accounts?id=eq.${enc(req.account.id)}&limit=1`);
+    const acct = rows && rows[0];
+    if (!acct || !verifyPassword(cur, acct.password_hash)) return res.status(401).json({ ok: false, error: 'Current password is incorrect.' });
+    await sb(`accounts?id=eq.${enc(acct.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ password_hash: hashPassword(nw) }) });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 router.post('/api/auth/logout', (req, res) => {
   res.set('Set-Cookie', `${COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`);
   res.json({ ok: true });
