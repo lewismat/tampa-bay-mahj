@@ -69,6 +69,18 @@
   @media(max-width:700px){ .hide-sm{display:none} }
 .card.gold{border-bottom:4px solid #C9A24B}
 .card.gold .n{color:#8A6D14}
+.evhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 10px}
+.evhead h2{margin:0}
+.evhead select,.evhead input{padding:8px 10px;border:1px solid #DED3B4;border-radius:9px;background:#fff;font-family:'Karla',sans-serif;font-size:.86rem;color:#3B4832}
+#evCustom{display:flex;gap:6px}
+.ev-row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #EFE7CC}
+.ev-row:last-child{border-bottom:none}
+.ev-when{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.05rem;color:#3B4832;min-width:190px}
+.ev-meta{flex:1;color:#5D6656;font-size:.92rem}
+.ev-meta b{color:#4C5B40;font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:700}
+.ev-seats{font-size:.82rem;font-weight:700;color:#6B7A5C}
+.ev-seats.full{color:#B3542E}
+.ev-empty{padding:20px 16px;color:#5D6656;font-weight:300}
 </style>
 </head>
 <body>
@@ -114,6 +126,20 @@
     <div class="card gold"><div class="n" id="revAll">–</div><div class="l">Revenue · All time</div></div>
   </div>
   <div id="revconnect" style="display:none;margin:2px 0 14px;font-size:.9rem;color:#5D6656">💳 Connect Stripe in <a href="/settings" style="color:#8A6D14;font-weight:700">Settings</a> to see revenue here.</div>
+
+  <div class="evhead">
+    <h2 style="font-family:'Cormorant Garamond',serif;color:#3B4832">Upcoming events</h2>
+    <select id="evRange">
+      <option value="next3">Next 3 events</option>
+      <option value="1m">Next month</option>
+      <option value="3m">Next 3 months</option>
+      <option value="6m">Next 6 months</option>
+      <option value="1y">This year</option>
+      <option value="custom">Custom…</option>
+    </select>
+    <span id="evCustom"><input type="date" id="evFrom"><input type="date" id="evTo"></span>
+  </div>
+  <div class="panel"><div id="evList">Loading…</div></div>
 
   <h2>Inquiries</h2>
   <div class="panel">
@@ -258,5 +284,32 @@
   }catch(e){}
 })();
 </script>
+<script>
+(function(){
+  var rangeSel=document.getElementById('evRange'),custom=document.getElementById('evCustom'),list=document.getElementById('evList');
+  var TYPE={private_lesson:'Private lesson',group_class:'Group class',private_party:'Private party'};
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function fmtWhen(d){return new Date(d).toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
+  var all=[];
+  var saved=localStorage.getItem('tbm_evrange')||'next3'; rangeSel.value=saved;
+  function render(){
+    var now=Date.now();
+    var up=all.filter(function(s){return new Date(s.starts_at).getTime()>=now;}).sort(function(a,b){return new Date(a.starts_at)-new Date(b.starts_at);});
+    var r=rangeSel.value,out=up;
+    custom.style.display=r==='custom'?'flex':'none';
+    if(r==='next3'){out=up.slice(0,3);}
+    else if(r==='custom'){var f=document.getElementById('evFrom').value,t=document.getElementById('evTo').value;var fromT=f?new Date(f+'T00:00').getTime():now,toT=t?new Date(t+'T23:59').getTime():Infinity;out=up.filter(function(s){var x=new Date(s.starts_at).getTime();return x>=fromT&&x<=toT;});}
+    else{var days={'1m':31,'3m':92,'6m':183,'1y':365}[r];var lim=now+days*864e5;out=up.filter(function(s){return new Date(s.starts_at).getTime()<=lim;});}
+    if(!out.length){list.innerHTML='<div class="ev-empty">No upcoming events'+(r==='next3'?'':' in this range')+'. Open dates in Scheduling.</div>';return;}
+    list.innerHTML=out.map(function(s){var taken=s.seats_taken||0,tot=s.seats_total||0,held=s.seats_held||0,full=(tot-taken-held)<=0;
+      return '<div class="ev-row"><div class="ev-when">'+fmtWhen(s.starts_at)+'</div><div class="ev-meta"><b>'+(TYPE[s.slot_type]||s.slot_type)+'</b>'+(s.location?' · '+esc(s.location):'')+'</div><div class="ev-seats'+(full?' full':'')+'">'+(tot?(taken+'/'+tot+' seats'+(full?' · full':'')):'')+'</div></div>';}).join('');
+  }
+  rangeSel.addEventListener('change',function(){localStorage.setItem('tbm_evrange',rangeSel.value);render();});
+  document.getElementById('evFrom').addEventListener('change',render);
+  document.getElementById('evTo').addEventListener('change',render);
+  fetch('/api/admin/slots').then(function(r){return r.ok?r.json():[];}).then(function(s){all=Array.isArray(s)?s:[];render();}).catch(function(){list.innerHTML='<div class="ev-empty">Could not load events.</div>';});
+})();
+</script>
+<script src="/sidebar.js"></script>
 </body>
 </html>

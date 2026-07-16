@@ -144,4 +144,5 @@ Array.prototype.forEach.call(document.querySelectorAll('.fbtn'),function(b){b.ad
 document.getElementById('logout').addEventListener('click',async function(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';});
 (async function(){if(await guard())loadList();})();
 </script>
+<script src="/sidebar.js"></script>
 </body></html>

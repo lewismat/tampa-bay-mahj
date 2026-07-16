@@ -208,4 +208,5 @@ $('save').addEventListener('click',async function(){
 $('tbmLogout').addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST'}).then(function(){location.href='/login';});});
 (async function(){if(await guard())load();})();
 </script>
+<script src="/sidebar.js"></script>
 </body></html>
