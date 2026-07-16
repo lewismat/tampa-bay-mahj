@@ -20,7 +20,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.warn('[accounts] SUPABASE_URL / SUPABASE_KEY not set — account routes will error.');
 }
 
-router.use(express.json());
+router.use(express.json({ limit: '5mb' }));
 
 /* ---------------- Supabase REST ---------------- */
 async function sb(pathname, opts = {}) {
@@ -186,7 +186,7 @@ router.get('/api/profile', async (req, res) => {
 router.put('/api/profile', requireAuth, async (req, res) => {
   try {
     const patch = { updated_at: new Date().toISOString() };
-    for (const f of PROFILE_FIELDS) if (f in req.body) patch[f] = clean(req.body[f], 4000);
+    for (const f of PROFILE_FIELDS) if (f in req.body) patch[f] = clean(req.body[f], f === 'photo_url' ? 4000000 : 4000);
     if (Array.isArray(req.body.links)) patch.links = req.body.links.slice(0, 24)
       .map((l) => ({ label: clean(l && l.label, 60), icon: clean(l && l.icon, 24), url: clean(l && l.url, 600) }))
       .filter((l) => l.label && l.url);

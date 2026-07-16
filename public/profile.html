@@ -50,6 +50,14 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
 .pgrid button:hover{border-color:var(--gold);background:var(--cream)}
 .pgrid button .tbmic{color:var(--gold-dk)}
 .tbmic{display:inline-block;vertical-align:middle}
+.photorow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.photoprev{width:88px;height:88px;border-radius:50%;flex:none;background:var(--cream-2);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--ink-soft);font-size:.68rem;text-align:center}
+.photoprev img{width:100%;height:100%;object-fit:cover}
+.photobtns{display:flex;flex-direction:column;gap:6px}
+.photobtn{padding:9px 16px;border:1.5px solid var(--sage);border-radius:10px;background:#fff;color:var(--sage);font-family:var(--body);font-weight:700;font-size:.86rem;cursor:pointer;width:fit-content}
+.photobtn:hover{background:rgba(76,91,64,.06)}
+.photodel{border:none;background:none;color:var(--red);font-size:.78rem;font-weight:600;cursor:pointer;width:fit-content;padding:0}
+.photohint{font-size:.75rem;color:var(--ink-soft);font-weight:300}
 </style></head>
 <body>
 <div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile" class="active">Profile</a><a href="/settings">Settings</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
@@ -61,7 +69,17 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
       <h2>The basics</h2>
       <div class="two"><div><label>Display name</label><input id="display_name" placeholder="Holly Lewis"></div>
         <div><label>Tagline</label><input id="tagline" placeholder="Elevated mahjong, Tampa &amp; St. Pete"></div></div>
-      <label>Photo URL <span style="text-transform:none;letter-spacing:0;color:var(--ink-soft);font-weight:400">(optional)</span></label><input id="photo_url" placeholder="https://…/holly.jpg">
+      <label>Photo <span style="text-transform:none;letter-spacing:0;color:var(--ink-soft);font-weight:400">(optional)</span></label>
+      <div class="photorow">
+        <div class="photoprev" id="photoprev"><span>No photo</span></div>
+        <div class="photobtns">
+          <button type="button" class="photobtn" id="photopick">Upload a photo</button>
+          <button type="button" class="photodel" id="photodel" style="display:none">Remove</button>
+          <div class="photohint">A clear headshot works best — we resize it for you.</div>
+        </div>
+        <input type="file" id="photofile" accept="image/*" style="display:none">
+        <input type="hidden" id="photo_url">
+      </div>
       <label>A little about you</label><textarea id="bio" placeholder="Warm, patient, and a little competitive — Holly has taught hundreds of players across Tampa Bay…"></textarea>
     </div>
 
@@ -144,9 +162,34 @@ $('pick').addEventListener('click',function(e){if(e.target===$('pick'))$('pick')
 $('addDetail').addEventListener('click',function(){details.push({icon:'flower',label:'',value:''});renderDetails();});
 $('addLink').addEventListener('click',function(){links.push({icon:'sparkle',label:'',url:''});renderLinks();});
 
+function showPhoto(data){
+  var prev=$('photoprev');
+  if(data){prev.innerHTML='<img src="'+data+'" alt="">';$('photodel').style.display='';}
+  else{prev.innerHTML='<span>No photo</span>';$('photodel').style.display='none';}
+}
+$('photopick').addEventListener('click',function(){$('photofile').click();});
+$('photodel').addEventListener('click',function(){$('photo_url').value='';showPhoto('');});
+$('photofile').addEventListener('change',function(){
+  var file=this.files&&this.files[0]; if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var max=480, w=img.width, h=img.height;
+      if(w>h){ if(w>max){h=Math.round(h*max/w);w=max;} } else { if(h>max){w=Math.round(w*max/h);h=max;} }
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      var data=c.toDataURL('image/jpeg',0.82);
+      $('photo_url').value=data; showPhoto(data);
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
 async function load(){
   var p=(await fetch('/api/profile').then(r=>r.json())).profile||{};
   BASIC.forEach(function(f){if(p[f]!=null)$(f).value=p[f];});
+  showPhoto(p.photo_url||'');
   details=Array.isArray(p.details)?p.details:[];
   links=Array.isArray(p.links)?p.links:[];
   // seed a friendly starter if totally empty
