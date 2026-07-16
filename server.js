@@ -165,149 +165,136 @@ const DASH_PASS = process.env.DASHBOARD_PASSWORD || 'EastWind88';
 const AUTH_TOKEN = crypto.createHash('sha256').update('tbm-salt-2026|' + DASH_PASS).digest('hex');
 function isAuthed(req) { return parseCookies(req).tbm_auth === AUTH_TOKEN; }
 
-// ---------- server ----------
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
-  const pathname = url.pathname;
+// ---------- Express app ----------
+const express = require('express');
+const app = express();
 
-  // record a visit
-  if (req.method === 'POST' && pathname === '/api/track') {
-    try {
-      const body = JSON.parse((await readBody(req)) || '{}');
-      const cookies = parseCookies(req);
-      let visitorId = cookies.tbm_vid;
-      const isNew = !visitorId;
-      if (!visitorId) visitorId = crypto.randomUUID();
+// record a visit
+app.post('/api/track', async (req, res) => {
+  try {
+    const body = JSON.parse((await readBody(req)) || '{}');
+    const cookies = parseCookies(req);
+    let visitorId = cookies.tbm_vid;
+    const isNew = !visitorId;
+    if (!visitorId) visitorId = crypto.randomUUID();
 
-      await store.addVisit({
-        id: crypto.randomUUID(),
-        visitorId,
-        time: new Date().toISOString(),
-        page: clean(body.page, 100) || '/',
-        referrer: clean(body.referrer, 300),
-        userAgent: clean(req.headers['user-agent'] || '', 300),
-        ip: getIP(req),
-        screen: clean(body.screen, 30),
-      });
-
-      const headers = { 'Content-Type': 'application/json' };
-      if (isNew) headers['Set-Cookie'] = 'tbm_vid=' + visitorId + '; Max-Age=31536000; Path=/; SameSite=Lax';
-      send(res, 200, JSON.stringify({ ok: true }), headers);
-    } catch (e) { console.error('track:', e.message); sendJSON(res, 400, { ok: false }); }
-    return;
-  }
-
-  // submit inquiry
-  if (req.method === 'POST' && pathname === '/api/inquiries') {
-    try {
-      const b = JSON.parse((await readBody(req)) || '{}');
-      const required = ['firstName', 'lastName', 'email', 'phone', 'eventType', 'eventDate'];
-      for (const f of required) {
-        if (!clean(b[f])) return sendJSON(res, 400, { ok: false, error: 'Missing field: ' + f });
-      }
-      const cookies = parseCookies(req);
-      const inquiry = {
-        id: crypto.randomUUID(),
-        submittedAt: new Date().toISOString(),
-        visitorId: cookies.tbm_vid || null,
-        ip: getIP(req),
-        firstName: clean(b.firstName, 100),
-        lastName: clean(b.lastName, 100),
-        email: clean(b.email, 200),
-        phone: clean(b.phone, 50),
-        eventType: clean(b.eventType, 100),
-        eventDate: clean(b.eventDate, 30),
-        startTime: clean(b.startTime, 30),
-        locationName: clean(b.locationName, 200),
-        streetAddress: clean(b.streetAddress, 300),
-        city: clean(b.city, 100),
-        state: clean(b.state, 50),
-        zip: clean(b.zip, 20),
-        aboutEvent: clean(b.aboutEvent, 3000),
-        guestCount: clean(b.guestCount, 20),
-        anythingElse: clean(b.anythingElse, 3000),
-        status: 'new',
-      };
-      const id = await store.addInquiry(inquiry);
-      notifyEmail(inquiry);
-      sendJSON(res, 200, { ok: true, id });
-    } catch (e) { console.error('inquiry:', e.message); sendJSON(res, 400, { ok: false, error: 'Invalid submission' }); }
-    return;
-  }
-
-  // login for dashboard
-  if (req.method === 'POST' && pathname === '/api/login') {
-    try {
-      const b = JSON.parse((await readBody(req)) || '{}');
-      if (typeof b.password === 'string' && b.password === DASH_PASS) {
-        send(res, 200, JSON.stringify({ ok: true }), {
-          'Content-Type': 'application/json',
-          'Set-Cookie': 'tbm_auth=' + AUTH_TOKEN + '; Max-Age=1209600; Path=/; HttpOnly; SameSite=Lax',
-        });
-      } else {
-        sendJSON(res, 401, { ok: false, error: 'Wrong password' });
-      }
-    } catch { sendJSON(res, 400, { ok: false }); }
-    return;
-  }
-
-  // dashboard data
-  if (req.method === 'GET' && pathname === '/api/dashboard') {
-    if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
-    try {
-      const { inquiries, visits } = await store.getAll();
-      const uniqueVisitors = new Set(visits.map((v) => v.visitorId)).size;
-      const formVisits = visits.filter((v) => v.page === '/' || v.page === '/index.html');
-      sendJSON(res, 200, {
-        inquiries, visits,
-        stats: {
-          totalVisits: formVisits.length,
-          uniqueVisitors,
-          totalInquiries: inquiries.length,
-          conversionRate: uniqueVisitors ? Math.round((inquiries.length / uniqueVisitors) * 100) : 0,
-        },
-      });
-    } catch (e) { console.error('dashboard:', e.message); sendJSON(res, 500, { ok: false, error: 'storage error' }); }
-    return;
-  }
-
-  // update inquiry status
-  if (req.method === 'PATCH' && pathname.startsWith('/api/inquiries/')) {
-    if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
-    try {
-      const id = pathname.split('/').pop();
-      const b = JSON.parse((await readBody(req)) || '{}');
-      const allowed = ['new', 'contacted', 'booked', 'archived'];
-      if (!allowed.includes(b.status)) return sendJSON(res, 400, { ok: false });
-      const ok = await store.setStatus(id, b.status);
-      sendJSON(res, ok ? 200 : 404, { ok });
-    } catch (e) { console.error('status:', e.message); sendJSON(res, 400, { ok: false }); }
-    return;
-  }
-
-  // static files
-  if (req.method === 'GET') {
-    let filePath = pathname === '/' ? '/index.html' : pathname;
-    if (filePath === '/dashboard') filePath = '/dashboard.html';
-    filePath = path.normalize(filePath).replace(/^([.][.][\/\\])+/, '');
-    const full = path.join(PUBLIC_DIR, filePath);
-    if (!full.startsWith(PUBLIC_DIR)) return send(res, 403, 'Forbidden');
-    fs.readFile(full, (err, data) => {
-      if (err) return send(res, 404, 'Not found');
-      send(res, 200, data, { 'Content-Type': MIME[path.extname(full)] || 'application/octet-stream' });
+    await store.addVisit({
+      id: crypto.randomUUID(),
+      visitorId,
+      time: new Date().toISOString(),
+      page: clean(body.page, 100) || '/',
+      referrer: clean(body.referrer, 300),
+      userAgent: clean(req.headers['user-agent'] || '', 300),
+      ip: getIP(req),
+      screen: clean(body.screen, 30),
     });
-    return;
-  }
 
-  send(res, 405, 'Method not allowed');
+    const headers = { 'Content-Type': 'application/json' };
+    if (isNew) headers['Set-Cookie'] = 'tbm_vid=' + visitorId + '; Max-Age=31536000; Path=/; SameSite=Lax';
+    send(res, 200, JSON.stringify({ ok: true }), headers);
+  } catch (e) { console.error('track:', e.message); sendJSON(res, 400, { ok: false }); }
 });
 
-server.listen(PORT, () => {
+// submit inquiry
+app.post('/api/inquiries', async (req, res) => {
+  try {
+    const b = JSON.parse((await readBody(req)) || '{}');
+    const required = ['firstName', 'lastName', 'email', 'phone', 'eventType', 'eventDate'];
+    for (const f of required) {
+      if (!clean(b[f])) return sendJSON(res, 400, { ok: false, error: 'Missing field: ' + f });
+    }
+    const cookies = parseCookies(req);
+    const inquiry = {
+      id: crypto.randomUUID(),
+      submittedAt: new Date().toISOString(),
+      visitorId: cookies.tbm_vid || null,
+      ip: getIP(req),
+      firstName: clean(b.firstName, 100),
+      lastName: clean(b.lastName, 100),
+      email: clean(b.email, 200),
+      phone: clean(b.phone, 50),
+      eventType: clean(b.eventType, 100),
+      eventDate: clean(b.eventDate, 30),
+      startTime: clean(b.startTime, 30),
+      locationName: clean(b.locationName, 200),
+      streetAddress: clean(b.streetAddress, 300),
+      city: clean(b.city, 100),
+      state: clean(b.state, 50),
+      zip: clean(b.zip, 20),
+      aboutEvent: clean(b.aboutEvent, 3000),
+      guestCount: clean(b.guestCount, 20),
+      anythingElse: clean(b.anythingElse, 3000),
+      status: 'new',
+    };
+    const id = await store.addInquiry(inquiry);
+    notifyEmail(inquiry);
+    sendJSON(res, 200, { ok: true, id });
+  } catch (e) { console.error('inquiry:', e.message); sendJSON(res, 400, { ok: false, error: 'Invalid submission' }); }
+});
+
+// login for dashboard
+app.post('/api/login', async (req, res) => {
+  try {
+    const b = JSON.parse((await readBody(req)) || '{}');
+    if (typeof b.password === 'string' && b.password === DASH_PASS) {
+      send(res, 200, JSON.stringify({ ok: true }), {
+        'Content-Type': 'application/json',
+        'Set-Cookie': 'tbm_auth=' + AUTH_TOKEN + '; Max-Age=1209600; Path=/; HttpOnly; SameSite=Lax',
+      });
+    } else {
+      sendJSON(res, 401, { ok: false, error: 'Wrong password' });
+    }
+  } catch { sendJSON(res, 400, { ok: false }); }
+});
+
+// dashboard data
+app.get('/api/dashboard', async (req, res) => {
+  if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
+  try {
+    const { inquiries, visits } = await store.getAll();
+    const uniqueVisitors = new Set(visits.map((v) => v.visitorId)).size;
+    const formVisits = visits.filter((v) => v.page === '/' || v.page === '/index.html');
+    sendJSON(res, 200, {
+      inquiries, visits,
+      stats: {
+        totalVisits: formVisits.length,
+        uniqueVisitors,
+        totalInquiries: inquiries.length,
+        conversionRate: uniqueVisitors ? Math.round((inquiries.length / uniqueVisitors) * 100) : 0,
+      },
+    });
+  } catch (e) { console.error('dashboard:', e.message); sendJSON(res, 500, { ok: false, error: 'storage error' }); }
+});
+
+// update inquiry status
+app.patch('/api/inquiries/:id', async (req, res) => {
+  if (!isAuthed(req)) return sendJSON(res, 401, { ok: false, error: 'auth required' });
+  try {
+    const id = req.params.id;
+    const b = JSON.parse((await readBody(req)) || '{}');
+    const allowed = ['new', 'contacted', 'booked', 'archived'];
+    if (!allowed.includes(b.status)) return sendJSON(res, 400, { ok: false });
+    const ok = await store.setStatus(id, b.status);
+    sendJSON(res, ok ? 200 : 404, { ok });
+  } catch (e) { console.error('status:', e.message); sendJSON(res, 400, { ok: false }); }
+});
+
+// /dashboard alias -> dashboard.html
+app.get('/dashboard', (req, res) => res.sendFile(path.join(PUBLIC_DIR, 'dashboard.html')));
+
+// static files (serves / -> index.html, and everything in public/)
+app.use(express.static(PUBLIC_DIR));
+
+// booking + waitlist routes
+app.use(require('./booking'));
+
+app.listen(PORT, () => {
   console.log('');
   console.log('  Tampa Bay Mahj is up!');
   console.log('  Storage: ' + (USE_SB ? 'Supabase' : 'local JSON file'));
   console.log('  Email notifications -> ' + NOTIFY_EMAIL);
   console.log('  Inquiry form:  http://localhost:' + PORT);
   console.log('  Dashboard:     http://localhost:' + PORT + '/dashboard');
+  console.log('  Booking:       http://localhost:' + PORT + '/book');
   console.log('');
 });
