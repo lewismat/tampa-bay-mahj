@@ -70,7 +70,7 @@
       item('/card','card','Public card',true)+
     '</nav>'+
     '<div class="sb-bottom">'+
-      '<a href="/settings"'+(path==='/settings'?' class="active"':'')+'><span class="sb-ico" id="sbSetIco">'+svg('settings')+'</span><span class="lbl">Settings</span></a>'+
+      '<a href="/settings"'+(path==='/settings'?' class="active"':'')+'><span class="sb-ico" id="sbSetIco">'+'<img class="sb-ava" src="/logo.png" alt="">'+'</span><span class="lbl">Settings</span></a>'+
       '<a id="sbLogout"><span class="sb-ico">'+svg('logout')+'</span><span class="lbl">Log out</span></a>'+
     '</div>';
   document.body.insertBefore(sb,document.body.firstChild);
