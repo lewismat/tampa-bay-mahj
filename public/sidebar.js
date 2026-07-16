@@ -79,7 +79,7 @@
 
   function setCollapsed(c){document.body.classList.toggle('sb-collapsed',c);try{localStorage.setItem('tbm_sb',c?'1':'0');}catch(e){}}
   var saved;try{saved=localStorage.getItem('tbm_sb');}catch(e){}
-  setCollapsed(saved==='1' || (saved===null && window.innerWidth<1000 && window.innerWidth>=720));
+  setCollapsed(saved==='1');
   document.getElementById('sbToggle').addEventListener('click',function(){setCollapsed(!document.body.classList.contains('sb-collapsed'));});
   document.getElementById('sbMono').addEventListener('click',function(){if(document.body.classList.contains('sb-collapsed'))setCollapsed(false);});
   document.getElementById('sbLogout').addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST'}).then(function(){location.href='/login';});});

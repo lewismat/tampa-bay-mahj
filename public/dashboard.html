@@ -81,6 +81,9 @@
 .ev-seats{font-size:.82rem;font-weight:700;color:#6B7A5C}
 .ev-seats.full{color:#B3542E}
 .ev-empty{padding:20px 16px;color:#5D6656;font-weight:300}
+.inqfilter{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+.inqfilter input,.inqfilter select{padding:9px 12px;border:1px solid #DED3B4;border-radius:9px;background:#fff;font-family:'Karla',sans-serif;font-size:.9rem;color:#3B4832}
+.inqfilter input{flex:1;min-width:200px}
 </style>
 </head>
 <body>
@@ -142,6 +145,10 @@
   <div class="panel"><div id="evList">Loading…</div></div>
 
   <h2>Inquiries</h2>
+  <div class="inqfilter">
+    <input id="inqSearch" placeholder="Search name, email, event…">
+    <select id="inqStatus"><option value="">All statuses</option><option value="new">New</option><option value="contacted">Contacted</option><option value="booked">Booked</option><option value="archived">Archived</option></select>
+  </div>
   <div class="panel">
     <table id="inquiriesTable">
       <thead><tr>
@@ -308,6 +315,22 @@
   document.getElementById('evFrom').addEventListener('change',render);
   document.getElementById('evTo').addEventListener('change',render);
   fetch('/api/admin/slots').then(function(r){return r.ok?r.json():[];}).then(function(s){all=Array.isArray(s)?s:[];render();}).catch(function(){list.innerHTML='<div class="ev-empty">Could not load events.</div>';});
+})();
+</script>
+<script>
+(function(){
+  var se=document.getElementById('inqSearch'),st=document.getElementById('inqStatus'),body=document.getElementById('inquiriesBody');
+  function apply(){
+    var q=(se.value||'').toLowerCase(),status=st.value;
+    Array.prototype.forEach.call(body.querySelectorAll('tr.row'),function(row){
+      var txt=row.textContent.toLowerCase();var b=row.querySelector('.badge');var s=b?b.textContent.trim():'';
+      var show=(!q||txt.indexOf(q)>-1)&&(!status||s===status);
+      row.style.display=show?'':'none';
+      var det=row.nextElementSibling;if(det&&det.classList.contains('detail')&&!show)det.style.display='none';
+    });
+  }
+  se.addEventListener('input',apply);st.addEventListener('change',apply);
+  new MutationObserver(apply).observe(body,{childList:true});
 })();
 </script>
 <script src="/sidebar.js"></script>
