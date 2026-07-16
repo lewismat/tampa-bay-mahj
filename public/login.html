@@ -58,13 +58,13 @@ async function init(){
 document.getElementById('form').addEventListener('submit',async function(ev){
   ev.preventDefault();
   var msg=document.getElementById('msg'); msg.className='msg'; msg.textContent='Working…';
-  var body,url;
+  var body,url,$=function(id){return document.getElementById(id);};
   if(setup){
     url='/api/auth/setup';
-    body={name:name.value,email:email.value,username:identifier.value,password:password.value};
+    body={name:$('name').value,email:$('email').value,username:$('identifier').value,password:$('password').value};
   }else{
     url='/api/auth/login';
-    body={identifier:identifier.value,password:password.value};
+    body={identifier:$('identifier').value,password:$('password').value};
   }
   try{
     var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
