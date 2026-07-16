@@ -34,7 +34,8 @@ function block(label,val){return val?('<div class="block"><h3>'+label+'</h3><p>'
   if(p.instagram) links.push('<a href="'+esc(p.instagram)+'" target="_blank" rel="noopener">Instagram</a>');
   if(p.shopmy)    links.push('<a href="'+esc(p.shopmy)+'" target="_blank" rel="noopener">ShopMy</a>');
   if(p.website)   links.push('<a href="'+esc(p.website)+'" target="_blank" rel="noopener">Website</a>');
-  links.push('<a class="solid" href="/book">Book a session</a>');
+  links.push('<a class="solid" href="/request">Request a lesson</a>');
+  links.push('<a href="/book">Book a session</a>');
   document.getElementById('card').innerHTML =
     photo +
     '<h1>'+esc(name)+'</h1>' +

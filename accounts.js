@@ -43,6 +43,15 @@ async function sb(pathname, opts = {}) {
 const enc = (v) => encodeURIComponent(v);
 const clean = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com';
+
+// Fire-and-forget note to Holly (same FormSubmit path the booking side uses).
+function tellHolly(subject, fields) {
+  fetch(`https://formsubmit.co/ajax/${encodeURIComponent(NOTIFY_EMAIL)}`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ _subject: subject, ...fields }),
+  }).catch((e) => console.error('[accounts] Holly notify failed:', e.message));
+}
 
 /* ---------------- password hashing (scrypt) ---------------- */
 function hashPassword(pw) {
@@ -184,7 +193,7 @@ router.put('/api/profile', requireAuth, async (req, res) => {
 });
 
 /* ================= STUDENT CRM ================= */
-const STU_FIELDS = ['first_name','last_name','email','phone','skill_level','tags','notes','birthday','source'];
+const STU_FIELDS = ['first_name','last_name','email','phone','skill_level','tags','notes','birthday','source','status'];
 function stuBody(b) {
   const o = {};
   for (const f of STU_FIELDS) if (f in b) o[f] = f === 'birthday' ? (clean(b[f], 20) || null) : clean(b[f], 4000);
@@ -194,12 +203,15 @@ function stuBody(b) {
 router.get('/api/students', requireAuth, async (req, res) => {
   try {
     const q = clean(req.query.q, 100);
-    let path = 'students?select=*&order=updated_at.desc&limit=500';
+    const status = ['lead', 'student'].includes(req.query.status) ? req.query.status : '';
+    let filters = 'select=*';
     if (q) {
       const like = `*${q}*`;
-      path = `students?select=*&or=(first_name.ilike.${enc(like)},last_name.ilike.${enc(like)},email.ilike.${enc(like)},tags.ilike.${enc(like)})&order=updated_at.desc&limit=500`;
+      filters += `&or=(first_name.ilike.${enc(like)},last_name.ilike.${enc(like)},email.ilike.${enc(like)},tags.ilike.${enc(like)})`;
     }
-    res.json({ ok: true, students: await sb(path) });
+    if (status) filters += `&status=eq.${status}`;
+    filters += '&order=updated_at.desc&limit=500';
+    res.json({ ok: true, students: await sb('students?' + filters) });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 router.post('/api/students', requireAuth, async (req, res) => {
@@ -234,11 +246,53 @@ router.put('/api/students/:id', requireAuth, async (req, res) => {
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
+/* ================= LEAD CAPTURE (public) ================= */
+// A prospect asks for a lesson from Holly's card. Lands in the CRM as a lead.
+router.post('/api/lead', async (req, res) => {
+  try {
+    const first = clean(req.body.first_name, 120);
+    const last = clean(req.body.last_name, 120);
+    const email = clean(req.body.email, 200).toLowerCase();
+    const phone = clean(req.body.phone, 50);
+    const message = clean(req.body.message, 2000);
+    if (!first || (!email && !phone)) {
+      return res.status(400).json({ ok: false, error: 'Please share your name and a way to reach you.' });
+    }
+    // Don't duplicate someone we already know.
+    let existing = [];
+    if (email) existing = await sb(`students?select=id&email=eq.${enc(email)}&limit=1`).catch(() => []);
+    if (existing && existing[0]) {
+      await sb(`students?id=eq.${existing[0].id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ updated_at: new Date().toISOString() }) }).catch(() => {});
+      tellHolly(`Lesson request (returning): ${first} ${last}`.trim(), { Name: `${first} ${last}`.trim(), Email: email || '-', Phone: phone || '-', Message: message || '-' });
+      return res.json({ ok: true, existing: true });
+    }
+    await sb('students', { method: 'POST', body: JSON.stringify({
+      first_name: first, last_name: last, email, phone,
+      status: 'lead', tags: 'lead', source: 'lesson request',
+      notes: message ? ('Lesson request: ' + message) : 'Lesson request',
+    }) });
+    tellHolly(`New lesson request: ${first} ${last}`.trim(), { Name: `${first} ${last}`.trim(), Email: email || '-', Phone: phone || '-', Message: message || '-' });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
+// Turn a lead into a student. Called manually now; the Stripe payment
+// handler will call this automatically once a lesson is actually paid.
+router.post('/api/students/:id/convert', requireAuth, async (req, res) => {
+  try {
+    await sb(`students?id=eq.${enc(req.params.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'student', updated_at: new Date().toISOString() }) });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 /* ================= PAGES ================= */
 const page = (f) => (req, res) => res.sendFile(path.join(__dirname, 'public', f));
 router.get('/login',    page('login.html'));
 router.get('/profile',  page('profile.html'));
 router.get('/students', page('students.html'));
 router.get('/card',     page('card.html'));
+router.get('/request',  page('request.html'));
 
 module.exports = router;

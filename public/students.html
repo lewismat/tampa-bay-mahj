@@ -39,6 +39,14 @@ button.primary:hover{background:var(--sage-dk)}
 .hist h3{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-soft);font-weight:700;margin-bottom:8px}
 .hrow{font-size:.85rem;color:var(--ink-soft);padding:5px 0;border-bottom:1px dashed var(--tile-edge)}
 .hrow b{color:var(--sage-dk)}
+
+.chip.lead{background:rgba(201,162,75,.22);color:#8A6D14}
+.item.islead{border-left-color:var(--gold)}
+.filters{display:flex;gap:6px;margin-bottom:12px}
+.fbtn{flex:1;padding:7px;border:1px solid var(--tile-edge);border-radius:8px;background:#fff;color:var(--sage-soft);font-family:var(--body);font-weight:700;font-size:.78rem;cursor:pointer}
+.fbtn.active{background:var(--sage);color:var(--cream);border-color:var(--sage)}
+.convert{width:100%;padding:9px;border:none;border-radius:9px;background:var(--gold);color:#2b2408;font-weight:700;cursor:pointer;font-family:var(--body)}
+.convert:hover{filter:brightness(1.05)}
 </style></head>
 <body>
 <div class="nav"><span class="brand">Tampa Bay Mahj</span>
@@ -49,6 +57,7 @@ button.primary:hover{background:var(--sage-dk)}
   <div>
     <h1>Students</h1><div class="count" id="count">—</div>
     <input class="search" id="search" placeholder="Search name, email, tag…">
+    <div class="filters" id="filters"><button class="fbtn active" data-f="">All</button><button class="fbtn" data-f="lead">Leads</button><button class="fbtn" data-f="student">Students</button></div>
     <button class="addbtn" id="addToggle">+ Add a student</button>
     <div class="addform panel" id="addform">
       <div class="row"><div><label>First name*</label><input id="a_first"></div><div><label>Last name</label><input id="a_last"></div></div>
@@ -69,15 +78,19 @@ function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;'
 function val(id){return document.getElementById(id).value.trim();}
 async function guard(){var s=await fetch('/api/auth/state').then(r=>r.json());if(!s.authed){location.href='/login';return false;}return true;}
 
+var curFilter='';
 async function loadList(){
   var q=val('search');
-  var d=await fetch('/api/students'+(q?'?q='+encodeURIComponent(q):'')).then(r=>r.json());
-  var list=document.getElementById('list');
-  document.getElementById('count').textContent=(d.students||[]).length+' student'+((d.students||[]).length===1?'':'s');
-  list.innerHTML=(d.students||[]).map(function(s){
+  var qs=[]; if(q)qs.push('q='+encodeURIComponent(q)); if(curFilter)qs.push('status='+curFilter);
+  var d=await fetch('/api/students'+(qs.length?'?'+qs.join('&'):'')).then(r=>r.json());
+  var list=document.getElementById('list'); var arr=d.students||[];
+  var noun=curFilter==='lead'?' lead':curFilter==='student'?' student':' record';
+  document.getElementById('count').textContent=arr.length+noun+(arr.length===1?'':'s');
+  list.innerHTML=arr.map(function(s){
     var nm=esc((s.first_name||'')+' '+(s.last_name||'')).trim();
-    return '<button class="item'+(s.id===selId?' sel':'')+'" data-id="'+s.id+'"><b>'+nm+'</b><span class="chip">'+(SKILL[s.skill_level]||s.skill_level)+'</span><div class="meta">'+esc(s.email||s.phone||'—')+(s.tags?' · '+esc(s.tags):'')+'</div></button>';
-  }).join('')||'<div class="count">No students yet.</div>';
+    var badge=s.status==='lead'?'<span class="chip lead">Lead</span>':'<span class="chip">'+(SKILL[s.skill_level]||s.skill_level)+'</span>';
+    return '<button class="item'+(s.status==='lead'?' islead':'')+(s.id===selId?' sel':'')+'" data-id="'+s.id+'"><b>'+(nm||'—')+'</b>'+badge+'<div class="meta">'+esc(s.email||s.phone||'—')+(s.tags?' · '+esc(s.tags):'')+'</div></button>';
+  }).join('')||'<div class="count">Nothing here yet.</div>';
   Array.prototype.forEach.call(list.querySelectorAll('.item'),function(el){el.addEventListener('click',function(){openStudent(el.getAttribute('data-id'));});});
 }
 async function openStudent(id){
@@ -93,14 +106,18 @@ async function openStudent(id){
   document.getElementById('detail').innerHTML=
     '<div class="row"><div><label>First name</label><input id="d_first" value="'+esc(s.first_name)+'"></div><div><label>Last name</label><input id="d_last" value="'+esc(s.last_name||'')+'"></div></div>'+
     '<div class="row"><div><label>Email</label><input id="d_email" value="'+esc(s.email||'')+'"></div><div><label>Phone</label><input id="d_phone" value="'+esc(s.phone||'')+'"></div></div>'+
-    '<div class="row"><div><label>Skill level</label><select id="d_skill">'+skillOpts+'</select></div><div><label>Birthday</label><input id="d_birthday" type="date" value="'+esc(s.birthday||'')+'"></div></div>'+
+    '<div class="row"><div><label>Skill level</label><select id="d_skill">'+skillOpts+'</select></div><div><label>Birthday</label><input id="d_birthday" type="date" value="'+esc(s.birthday||'')+'"></div></div>'+'<div class="row"><div><label>Status</label><select id="d_status"><option value="lead"'+(s.status==="lead"?' selected':'')+'>Lead</option><option value="student"'+(s.status!=="lead"?' selected':'')+'>Student</option></select></div><div>'+(s.status==="lead"?'<label>&nbsp;</label><button class="convert" id="d_convert">\u2713 Convert to student</button>':'')+'</div></div>'+
     '<label>Tags</label><input id="d_tags" value="'+esc(s.tags||'')+'">'+
     '<label>Notes</label><textarea id="d_notes">'+esc(s.notes||'')+'</textarea>'+
     '<div><button class="primary" id="d_save">Save changes</button><span class="msg" id="d_msg"></span></div>'+
     '<div class="hist"><h3>History</h3>'+hist+'</div>';
+  var cv=document.getElementById('d_convert'); if(cv) cv.addEventListener('click',async function(){
+    var r=await fetch('/api/students/'+id+'/convert',{method:'POST'}).then(x=>x.json());
+    if(r.ok){loadList();openStudent(id);}
+  });
   document.getElementById('d_save').addEventListener('click',async function(){
     var msg=document.getElementById('d_msg');msg.className='msg';msg.textContent='Saving…';
-    var body={first_name:val('d_first'),last_name:val('d_last'),email:val('d_email'),phone:val('d_phone'),skill_level:document.getElementById('d_skill').value,birthday:val('d_birthday'),tags:val('d_tags'),notes:document.getElementById('d_notes').value};
+    var body={first_name:val('d_first'),last_name:val('d_last'),email:val('d_email'),phone:val('d_phone'),skill_level:document.getElementById('d_skill').value,status:document.getElementById('d_status').value,birthday:val('d_birthday'),tags:val('d_tags'),notes:document.getElementById('d_notes').value};
     var r=await fetch('/api/students/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(x=>x.json());
     if(r.ok){msg.className='msg ok';msg.textContent='Saved ✓';loadList();}else{msg.className='msg err';msg.textContent=r.error||'Error';}
   });
@@ -117,6 +134,7 @@ document.getElementById('a_save').addEventListener('click',async function(){
   else{msg.className='msg err';msg.textContent=d.error||'Error';}
 });
 var st;document.getElementById('search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(loadList,250);});
+Array.prototype.forEach.call(document.querySelectorAll('.fbtn'),function(b){b.addEventListener('click',function(){document.querySelectorAll('.fbtn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');curFilter=b.getAttribute('data-f');loadList();});});
 document.getElementById('logout').addEventListener('click',async function(){await fetch('/api/auth/logout',{method:'POST'});location.href='/login';});
 (async function(){if(await guard())loadList();})();
 </script>
