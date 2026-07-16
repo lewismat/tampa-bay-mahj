@@ -252,6 +252,86 @@ router.put('/api/students/:id', requireAuth, async (req, res) => {
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
+/* ================= STRIPE / SETTINGS ================= */
+async function stripeGet(key, pathq) {
+  const r = await fetch('https://api.stripe.com/v1/' + pathq, { headers: { Authorization: 'Bearer ' + key } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((j.error && j.error.message) || ('Stripe ' + r.status));
+  return j;
+}
+async function getStripeKey() {
+  const rows = await sb('settings?id=eq.app&select=stripe_secret_key&limit=1').catch(() => []);
+  return (rows && rows[0] && rows[0].stripe_secret_key) || '';
+}
+// Any lead who shows up as a paid Stripe customer becomes a student. Lazy — runs on revenue fetch.
+async function convertPaidLeads(emails) {
+  for (const em of emails) {
+    if (!em) continue;
+    try {
+      await sb(`students?status=eq.lead&email=eq.${enc(em)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'student', updated_at: new Date().toISOString() }) });
+    } catch (e) {}
+  }
+}
+
+// Settings never leak the key back to the browser — only whether it's connected + a masked hint.
+router.get('/api/settings', requireAuth, async (req, res) => {
+  try {
+    const k = await getStripeKey();
+    res.json({ ok: true, stripeConnected: !!k, stripeHint: k ? ('•••• ' + k.slice(-4)) : '',
+      mode: k.startsWith('rk_') ? 'restricted' : (k.startsWith('sk_') ? 'secret' : '') });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
+  try {
+    const key = clean(req.body.stripe_secret_key, 220);
+    if (key && !/^(sk|rk)_/.test(key)) return res.status(400).json({ ok: false, error: "That doesn't look like a Stripe key — it should start with sk_ or rk_." });
+    await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ stripe_secret_key: key || null, updated_at: new Date().toISOString() }) });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+router.post('/api/settings/stripe/test', requireAuth, async (req, res) => {
+  try {
+    const key = await getStripeKey();
+    if (!key) return res.json({ ok: false, error: 'No key saved yet.' });
+    const bal = await stripeGet(key, 'balance');
+    res.json({ ok: true, livemode: !!bal.livemode });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+// Revenue for the dashboard, computed from Stripe charges (best-effort, recent pages).
+router.get('/api/revenue', requireAuth, async (req, res) => {
+  try {
+    const key = await getStripeKey();
+    if (!key) return res.json({ ok: true, connected: false });
+    let charges = [], after = null, pages = 0, more = true;
+    while (more && pages < 4) {
+      const j = await stripeGet(key, 'charges?limit=100' + (after ? '&starting_after=' + after : ''));
+      const data = j.data || [];
+      charges = charges.concat(data);
+      more = !!j.has_more && data.length > 0;
+      after = data.length ? data[data.length - 1].id : null;
+      pages++;
+    }
+    const now = new Date();
+    const monthStart = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000);
+    let all = 0, month = 0, count = 0, cur = 'usd';
+    const emails = new Set();
+    charges.forEach((c) => {
+      if (c.paid && !c.refunded) {
+        all += c.amount; count++;
+        if (c.created >= monthStart) month += c.amount;
+        cur = c.currency || cur;
+        const em = (c.receipt_email || (c.billing_details && c.billing_details.email) || '').toLowerCase();
+        if (em) emails.add(em);
+      }
+    });
+    convertPaidLeads(Array.from(emails)).catch(() => {});
+    res.json({ ok: true, connected: true, currency: cur, month: month / 100, all: all / 100, count, truncated: more });
+  } catch (e) { res.json({ ok: true, connected: true, error: e.message }); }
+});
+
 /* ================= LEAD CAPTURE (public) ================= */
 // A prospect asks for a lesson from Holly's card. Lands in the CRM as a lead.
 router.post('/api/lead', async (req, res) => {
@@ -309,6 +389,7 @@ router.get('/login',    page('login.html'));
 router.get('/profile',  page('profile.html'));
 router.get('/students', page('students.html'));
 router.get('/card',     page('card.html'));
+router.get('/settings', page('settings.html'));
 router.get('/request',  (req, res) => res.redirect('/'));
 
 module.exports = router;

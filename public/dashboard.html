@@ -67,6 +67,8 @@
     padding:13px;cursor:pointer}
   .lock .err{color:var(--red);font-size:.85rem;margin-top:10px;min-height:1.2em}
   @media(max-width:700px){ .hide-sm{display:none} }
+.card.gold{border-bottom:4px solid #C9A24B}
+.card.gold .n{color:#8A6D14}
 </style>
 </head>
 <body>
@@ -76,7 +78,7 @@
 .tbmnav a{color:#F7F2E4;text-decoration:none;font-size:.85rem;font-weight:500;opacity:.88;cursor:pointer}
 .tbmnav a:hover{opacity:1}.tbmnav a.active{color:#C9A24B;opacity:1;font-weight:700}
 </style>
-<div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard" class="active">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
+<div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard" class="active">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/settings">Settings</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
 <script>document.getElementById("tbmLogout").addEventListener("click",function(){fetch("/api/auth/logout",{method:"POST"}).then(function(){location.href="/login";});});</script>
 <div class="lock" id="lock" style="display:none">
   <div class="box">
@@ -107,6 +109,11 @@
     <div class="card"><div class="n" id="stInquiries">–</div><div class="l">Inquiries</div></div>
     <div class="card"><div class="n" id="stConv">–</div><div class="l">Visitor → Inquiry</div></div>
   </div>
+  <div class="cards" id="revcards" style="display:none">
+    <div class="card gold"><div class="n" id="revMonth">–</div><div class="l">Revenue · This month</div></div>
+    <div class="card gold"><div class="n" id="revAll">–</div><div class="l">Revenue · All time</div></div>
+  </div>
+  <div id="revconnect" style="display:none;margin:2px 0 14px;font-size:.9rem;color:#5D6656">💳 Connect Stripe in <a href="/settings" style="color:#8A6D14;font-weight:700">Settings</a> to see revenue here.</div>
 
   <h2>Inquiries</h2>
   <div class="panel">
@@ -235,6 +242,20 @@
   });
   load();
   setInterval(load, 30000);
+})();
+</script>
+<script>
+(async function(){
+  try{
+    var r=await fetch('/api/revenue').then(x=>x.json());
+    if(!r||!r.ok) return;
+    if(!r.connected){document.getElementById('revconnect').style.display='block';return;}
+    if(r.error){return;}
+    var f=function(n){return '$'+(n||0).toLocaleString('en-US',{maximumFractionDigits:0});};
+    document.getElementById('revMonth').textContent=f(r.month);
+    document.getElementById('revAll').textContent=f(r.all);
+    document.getElementById('revcards').style.display='';
+  }catch(e){}
 })();
 </script>
 </body>

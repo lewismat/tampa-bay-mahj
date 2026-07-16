@@ -81,6 +81,29 @@ const fmt = (d) => new Date(d).toLocaleString('en-US', {
 });
 
 // Holly's notifications keep going through FormSubmit — already working, already activated.
+// A booking (or claimed waitlist seat) makes them a real student, tagged with the event.
+async function upsertStudentFromBooking(person, slot) {
+  try {
+    const email = (person.email || '').toLowerCase();
+    const when = slot && slot.starts_at
+      ? new Date(slot.starts_at).toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' }) : '';
+    const label = (TYPE_LABEL[slot.slot_type] || slot.slot_type || 'event') + (when ? ' \u00b7 ' + when : '');
+    const tag = 'booked: ' + label;
+    let ex = [];
+    if (email) ex = await sb(`students?select=id,tags&email=eq.${encodeURIComponent(email)}&limit=1`).catch(() => []);
+    if (ex && ex[0]) {
+      const tags = (ex[0].tags || '').split(',').map((t) => t.trim()).filter(Boolean);
+      if (!tags.includes(tag)) tags.push(tag);
+      await sb(`students?id=eq.${ex[0].id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'student', source: 'event booking', tags: tags.join(', '), updated_at: new Date().toISOString() }) });
+    } else {
+      await sb('students', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
+        first_name: person.first_name, last_name: person.last_name, email, phone: person.phone,
+        status: 'student', source: 'event booking', tags: tag, notes: 'Booked ' + label }) });
+    }
+  } catch (e) { console.error('[booking] student upsert:', e.message); }
+}
+
 async function tellHolly(subject, fields) {
   try {
     await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(NOTIFY_EMAIL)}`, {
@@ -206,6 +229,7 @@ router.post('/api/book', async (req, res) => {
     if (!result?.ok) return res.status(409).json({ error: result?.error || 'That time just filled up.' });
 
     const [slot] = await sb(`slots?select=*&id=eq.${b.slot_id}`);
+    upsertStudentFromBooking(payload, slot);
 
     mail.bookingConfirmed({ ...payload, seats }, slot, result.manage_token);
     tellHolly(`New booking — ${TYPE_LABEL[slot.slot_type]} — ${fmt(slot.starts_at)}`, {
@@ -314,6 +338,7 @@ router.post('/api/waitlist/:token/claim', async (req, res) => {
 
     const [w] = await sb(`waitlist?select=*,slots(*)&token=eq.${encodeURIComponent(req.params.token)}`);
     if (!result.already && w) {
+      upsertStudentFromBooking(w, w.slots);
       mail.offerClaimed({ ...w, starts_at: w.slots.starts_at, location: w.slots.location }, result.manage_token);
       tellHolly(`Waitlist claimed — ${w.first_name} ${w.last_name} — ${fmt(w.slots.starts_at)}`, {
         Name: `${w.first_name} ${w.last_name}`,
