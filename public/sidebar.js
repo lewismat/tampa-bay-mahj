@@ -60,7 +60,7 @@
     '<div class="sb-top"><span class="sb-mono" id="sbMono"><img src="/logo.png" alt="H" id="sbMonoImg"></span><span class="sb-name">Tampa Bay Mahj</span><button class="sb-toggle" id="sbToggle" title="Collapse">&#171;</button></div>'+
     '<nav class="sb-nav">'+
       item('/dashboard','dashboard','Dashboard')+
-      item('/schedule','schedule','Scheduling')+
+      item('/schedule','schedule','Events')+
       item('/students','students','Students')+
       item('/profile','profile','Profile')+
       item('/card','card','Public card',true)+
