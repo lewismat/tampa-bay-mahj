@@ -81,6 +81,12 @@
 .ev-seats{font-size:.82rem;font-weight:700;color:#6B7A5C}
 .ev-seats.full{color:#B3542E}
 .ev-empty{padding:20px 16px;color:#5D6656;font-weight:300}
+.ev-row{cursor:pointer}
+.ev-caret{color:#8A6D14;font-size:.75rem;flex:none}
+.ev-detail{padding:8px 16px 14px 42px;background:#FBF8EF;border-bottom:1px solid #EFE7CC}
+.ev-att{font-size:.88rem;color:#5D6656;padding:3px 0}
+.ev-att b{color:#3B4832;font-family:'Cormorant Garamond',serif;font-size:1rem}
+.ev-att.muted{font-style:italic}
 .inqfilter{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
 .inqfilter input,.inqfilter select{padding:9px 12px;border:1px solid #DED3B4;border-radius:9px;background:#fff;font-family:'Karla',sans-serif;font-size:.9rem;color:#3B4832}
 .inqfilter input{flex:1;min-width:200px}
@@ -310,7 +316,10 @@
     else{var days={'1m':31,'3m':92,'6m':183,'1y':365}[r];var lim=now+days*864e5;out=up.filter(function(s){return new Date(s.starts_at).getTime()<=lim;});}
     if(!out.length){list.innerHTML='<div class="ev-empty">No upcoming events'+(r==='next3'?'':' in this range')+'. Open dates in Scheduling.</div>';return;}
     list.innerHTML=out.map(function(s){var taken=s.seats_taken||0,tot=s.seats_total||0,held=s.seats_held||0,full=(tot-taken-held)<=0;
-      return '<div class="ev-row"><div class="ev-when">'+fmtWhen(s.starts_at)+'</div><div class="ev-meta"><b>'+(TYPE[s.slot_type]||s.slot_type)+'</b>'+(s.location?' · '+esc(s.location):'')+'</div><div class="ev-seats'+(full?' full':'')+'">'+(tot?(taken+'/'+tot+' seats'+(full?' · full':'')):'')+'</div></div>';}).join('');
+      var bk=(s.bookings||[]).filter(function(b){return b.status==='confirmed';});
+      var att=bk.length?bk.map(function(b){return '<div class="ev-att"><b>'+esc(((b.first_name||'')+' '+(b.last_name||'')).trim()||'—')+'</b> · '+(b.seats||1)+' seat'+((b.seats||1)==1?'':'s')+(b.email?' · '+esc(b.email):'')+(b.phone?' · '+esc(b.phone):'')+'</div>';}).join(''):'<div class="ev-att muted">No sign-ups yet.</div>';
+      return '<div class="ev-row" data-ev="'+s.id+'"><span class="ev-caret" id="evc_'+s.id+'">▸</span><div class="ev-when">'+fmtWhen(s.starts_at)+'</div><div class="ev-meta"><b>'+(TYPE[s.slot_type]||s.slot_type)+'</b>'+(s.location?' · '+esc(s.location):'')+'</div><div class="ev-seats'+(full?' full':'')+'">'+(tot?(taken+'/'+tot+' seats'+(full?' · full':'')):'')+'</div></div><div class="ev-detail" id="evd_'+s.id+'" style="display:none">'+att+'</div>';}).join('');
+    Array.prototype.forEach.call(list.querySelectorAll('.ev-row'),function(row){row.addEventListener('click',function(){var id=row.getAttribute('data-ev');var dd=document.getElementById('evd_'+id);var c=document.getElementById('evc_'+id);var show=dd.style.display==='none';dd.style.display=show?'':'none';if(c)c.textContent=show?'▾':'▸';});});
   }
   rangeSel.addEventListener('change',function(){localStorage.setItem('tbm_evrange',rangeSel.value);render();});
   document.getElementById('evFrom').addEventListener('change',render);
