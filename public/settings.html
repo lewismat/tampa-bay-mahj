@@ -67,6 +67,32 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <div class="btnrow"><button class="save" id="save">Save key</button><button class="test" id="test">Test connection</button><span class="msg" id="msg"></span></div>
     <div class="note"><b>Tip:</b> create a <b>restricted key</b> with read-only access to <b>Balance</b> and <b>Charges</b> — that's all the dashboard needs, and it can't move money even if exposed. Get one at <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe → Developers → API keys</a>. Your key is stored server-side and never returned to this page.</div>
   </div>
+
+  <div class="panel">
+    <h2>💬 Text messages · Twilio</h2>
+    <div id="twStatus"></div>
+    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">Auto-texts booking &amp; request confirmations. From your Twilio console.</p>
+    <label>Account SID</label><input id="tw_sid" placeholder="AC…" autocomplete="off">
+    <label>Auth Token</label><input id="tw_token" type="password" placeholder="your auth token" autocomplete="off">
+    <label>From number</label><input id="tw_from" placeholder="+18135551234">
+    <div class="btnrow"><button class="save" id="tw_save">Save</button><button class="test" id="tw_test">Test connection</button><span class="msg" id="tw_msg"></span></div>
+  </div>
+
+  <div class="panel">
+    <h2>📅 Calendar</h2>
+    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Subscribe to this feed in Google, Apple, or Outlook Calendar — every open date appears automatically.</p>
+    <label>Your private calendar feed</label>
+    <div class="btnrow"><input id="cal_url" readonly style="flex:1;min-width:220px"><button class="test" id="cal_copy">Copy</button><span class="msg" id="cal_msg"></span></div>
+    <div class="note" style="margin-top:16px"><b>Two-way connect (later):</b> paste your Google / Microsoft OAuth app credentials to push events into those calendars. Safe to leave blank for now.
+      <label>Google client ID</label><input id="g_id" placeholder="…apps.googleusercontent.com" autocomplete="off">
+      <label>Google client secret</label><input id="g_secret" type="password" placeholder="GOCSPX-…" autocomplete="off">
+      <div class="btnrow"><button class="save" id="g_save">Save Google</button><span class="msg" id="g_msg"></span></div>
+      <label style="margin-top:14px">Microsoft client ID</label><input id="m_id" autocomplete="off">
+      <label>Microsoft client secret</label><input id="m_secret" type="password" autocomplete="off">
+      <label>Microsoft tenant (optional)</label><input id="m_tenant" placeholder="common">
+      <div class="btnrow"><button class="save" id="m_save">Save Microsoft</button><span class="msg" id="m_msg"></span></div>
+    </div>
+  </div>
 </div>
 <script>
 function $(id){return document.getElementById(id);}
@@ -76,7 +102,15 @@ async function loadStatus(){
   var el=$('stripeStatus');
   if(s.stripeConnected){el.innerHTML='<span class="status on">✓ Connected · '+(s.mode==='restricted'?'restricted key':'secret key')+' '+s.stripeHint+'</span>';}
   else{el.innerHTML='<span class="status off">Not connected yet</span>';}
+  var tw=$('twStatus');
+  if(s.twilioConnected){tw.innerHTML='<span class="status on">✓ Connected · texts from '+s.twilioFrom+'</span>';}
+  else{tw.innerHTML='<span class="status off">Not connected yet</span>';}
+  if($('cal_url'))$('cal_url').value=s.calendarUrl||'';
+  if(s.googleClientId&&$('g_id'))$('g_id').value=s.googleClientId;
+  if(s.msClientId&&$('m_id'))$('m_id').value=s.msClientId;
+  if(s.msTenant&&$('m_tenant'))$('m_tenant').value=s.msTenant;
 }
+async function saveSettings(obj,msgId,okText){var m=$(msgId);m.className='msg';m.textContent='Saving…';var d=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj)}).then(r=>r.json());if(d.ok){m.className='msg ok';m.textContent=okText||'Saved ✓';loadStatus();}else{m.className='msg err';m.textContent=d.error||'Error';}}
 $('save').addEventListener('click',async function(){
   var msg=$('msg');msg.className='msg';msg.textContent='Saving…';
   var d=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({stripe_secret_key:$('stripe_key').value.trim()})}).then(r=>r.json());
@@ -112,6 +146,11 @@ $('pw_save').addEventListener('click',async function(){
   if(d.ok){msg.className='msg ok';msg.textContent='Password updated ✓';$('pw_cur').value='';$('pw_new').value='';$('pw_conf').value='';}
   else{msg.className='msg err';msg.textContent=d.error||'Error';}
 });
+$('tw_save').addEventListener('click',function(){saveSettings({twilio_account_sid:$('tw_sid').value.trim(),twilio_auth_token:$('tw_token').value.trim(),twilio_from:$('tw_from').value.trim()},'tw_msg');});
+$('tw_test').addEventListener('click',async function(){var m=$('tw_msg');m.className='msg';m.textContent='Testing…';var d=await fetch('/api/settings/twilio/test',{method:'POST'}).then(r=>r.json());if(d.ok){m.className='msg ok';m.textContent='Works! ('+(d.status||'active')+')';}else{m.className='msg err';m.textContent=d.error||'Could not connect';}});
+$('cal_copy').addEventListener('click',function(){var u=$('cal_url').value;if(!u)return;navigator.clipboard&&navigator.clipboard.writeText(u);var m=$('cal_msg');m.className='msg ok';m.textContent='Copied ✓';});
+$('g_save').addEventListener('click',function(){saveSettings({google_client_id:$('g_id').value.trim(),google_client_secret:$('g_secret').value.trim()},'g_msg');});
+$('m_save').addEventListener('click',function(){saveSettings({ms_client_id:$('m_id').value.trim(),ms_client_secret:$('m_secret').value.trim(),ms_tenant:$('m_tenant').value.trim()},'m_msg');});
 (async function(){if(await guard())loadStatus();})();
 </script>
 <script src="/sidebar.js"></script>

@@ -13,6 +13,7 @@
 const express = require('express');
 const path = require('path');
 const mail = require('./email');
+const sms = require('./sms');
 const auth = require('./auth');
 const router = express.Router();
 
@@ -232,6 +233,7 @@ router.post('/api/book', async (req, res) => {
     upsertStudentFromBooking(payload, slot);
 
     mail.bookingConfirmed({ ...payload, seats }, slot, result.manage_token);
+    if (payload.phone) sms.sendSMS(payload.phone, `You're booked with Tampa Bay Mahj \u2014 ${TYPE_LABEL[slot.slot_type]} on ${fmt(slot.starts_at)}. Manage: ${SITE_URL}/booking/${result.manage_token}`).catch(() => {});
     tellHolly(`New booking — ${TYPE_LABEL[slot.slot_type]} — ${fmt(slot.starts_at)}`, {
       Name: `${payload.first_name} ${payload.last_name}`,
       Email: payload.email,
@@ -340,6 +342,7 @@ router.post('/api/waitlist/:token/claim', async (req, res) => {
     if (!result.already && w) {
       upsertStudentFromBooking(w, w.slots);
       mail.offerClaimed({ ...w, starts_at: w.slots.starts_at, location: w.slots.location }, result.manage_token);
+      if (w.phone) sms.sendSMS(w.phone, `Your seat is confirmed with Tampa Bay Mahj \u2014 ${TYPE_LABEL[w.slots.slot_type]} on ${fmt(w.slots.starts_at)}. Manage: ${SITE_URL}/booking/${result.manage_token}`).catch(() => {});
       tellHolly(`Waitlist claimed — ${w.first_name} ${w.last_name} — ${fmt(w.slots.starts_at)}`, {
         Name: `${w.first_name} ${w.last_name}`,
         Email: w.email,

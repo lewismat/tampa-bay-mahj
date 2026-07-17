@@ -9,6 +9,8 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const router = express.Router();
+const mail = require('./email');
+const sms = require('./sms');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -290,19 +292,76 @@ async function convertPaidLeads(emails) {
 // Settings never leak the key back to the browser — only whether it's connected + a masked hint.
 router.get('/api/settings', requireAuth, async (req, res) => {
   try {
-    const k = await getStripeKey();
-    res.json({ ok: true, stripeConnected: !!k, stripeHint: k ? ('•••• ' + k.slice(-4)) : '',
-      mode: k.startsWith('rk_') ? 'restricted' : (k.startsWith('sk_') ? 'secret' : '') });
+    const rows = await sb('settings?id=eq.app&limit=1');
+    const s = (rows && rows[0]) || {};
+    const k = s.stripe_secret_key || '';
+    const proto = req.get('x-forwarded-proto') || 'https';
+    const base = proto + '://' + req.get('host');
+    res.json({ ok: true,
+      stripeConnected: !!k, stripeHint: k ? ('•••• ' + k.slice(-4)) : '', mode: k.startsWith('rk_') ? 'restricted' : (k.startsWith('sk_') ? 'secret' : ''),
+      twilioConnected: !!(s.twilio_account_sid && s.twilio_auth_token && s.twilio_from), twilioFrom: s.twilio_from || '',
+      twilioSidHint: s.twilio_account_sid ? ('•••• ' + String(s.twilio_account_sid).slice(-4)) : '',
+      calendarUrl: s.calendar_token ? (base + '/api/cal/' + s.calendar_token + '.ics') : '',
+      googleConnected: !!(s.google_client_id && s.google_client_secret), googleClientId: s.google_client_id || '',
+      msConnected: !!(s.ms_client_id && s.ms_client_secret), msClientId: s.ms_client_id || '', msTenant: s.ms_tenant || '' });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
   try {
-    const key = clean(req.body.stripe_secret_key, 220);
-    if (key && !/^(sk|rk)_/.test(key)) return res.status(400).json({ ok: false, error: "That doesn't look like a Stripe key — it should start with sk_ or rk_." });
-    await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ stripe_secret_key: key || null, updated_at: new Date().toISOString() }) });
+    const b = req.body || {};
+    const patch = { updated_at: new Date().toISOString() };
+    if ('stripe_secret_key' in b) {
+      const key = clean(b.stripe_secret_key, 220);
+      if (key && !/^(sk|rk)_/.test(key)) return res.status(400).json({ ok: false, error: 'Stripe key should start with sk_ or rk_.' });
+      patch.stripe_secret_key = key || null;
+    }
+    ['twilio_account_sid','twilio_auth_token','twilio_from','google_client_id','google_client_secret','ms_client_id','ms_client_secret','ms_tenant'].forEach(function(f){
+      if (f in b) patch[f] = clean(b[f], 300) || null;
+    });
+    await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
+// Validate Twilio creds (no message sent).
+router.post('/api/settings/twilio/test', requireAuth, async (req, res) => {
+  try {
+    const rows = await sb('settings?id=eq.app&select=twilio_account_sid,twilio_auth_token&limit=1');
+    const s = rows && rows[0];
+    if (!s || !s.twilio_account_sid || !s.twilio_auth_token) return res.json({ ok: false, error: 'Twilio not saved yet.' });
+    const r = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + s.twilio_account_sid + '.json',
+      { headers: { Authorization: 'Basic ' + Buffer.from(s.twilio_account_sid + ':' + s.twilio_auth_token).toString('base64') } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return res.json({ ok: false, error: j.message || ('Twilio ' + r.status) });
+    res.json({ ok: true, status: j.status });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+// Public, token-gated ICS calendar feed — subscribe in Google/Apple/Outlook.
+router.get('/api/cal/:file', async (req, res) => {
+  try {
+    const token = String(req.params.file || '').replace(/\.ics$/, '');
+    const rows = await sb('settings?id=eq.app&select=calendar_token&limit=1');
+    const tok = rows && rows[0] && rows[0].calendar_token;
+    if (!tok || token !== tok) return res.status(404).send('Not found');
+    const slots = await sb('slots?select=*&published=eq.true&order=starts_at.asc&limit=800').catch(() => []);
+    const LBL = { private_lesson: 'Private lesson', group_class: 'Group class', private_party: 'Private party' };
+    const pad = (n) => String(n).padStart(2, '0');
+    const z = (d) => { const x = new Date(d); return x.getUTCFullYear() + pad(x.getUTCMonth()+1) + pad(x.getUTCDate()) + 'T' + pad(x.getUTCHours()) + pad(x.getUTCMinutes()) + '00Z'; };
+    const esc = (v) => String(v || '').replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
+    let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Tampa Bay Mahj//EN\r\nCALSCALE:GREGORIAN\r\nX-WR-CALNAME:Tampa Bay Mahj\r\n';
+    (slots || []).forEach((sl) => {
+      const end = new Date(new Date(sl.starts_at).getTime() + (sl.duration_minutes || 120) * 60000);
+      ics += 'BEGIN:VEVENT\r\nUID:' + sl.id + '@tampabaymahj\r\nDTSTAMP:' + z(new Date()) + '\r\nDTSTART:' + z(sl.starts_at) + '\r\nDTEND:' + z(end) + '\r\n';
+      ics += 'SUMMARY:' + esc((LBL[sl.slot_type] || 'Mahjong') + ' (' + (sl.seats_taken||0) + '/' + (sl.seats_total||0) + ')') + '\r\n';
+      if (sl.location) ics += 'LOCATION:' + esc(sl.location) + '\r\n';
+      if (sl.notes) ics += 'DESCRIPTION:' + esc(sl.notes) + '\r\n';
+      ics += 'END:VEVENT\r\n';
+    });
+    ics += 'END:VCALENDAR\r\n';
+    res.set('Content-Type', 'text/calendar; charset=utf-8');
+    res.send(ics);
+  } catch (e) { res.status(500).send('error'); }
 });
 router.post('/api/settings/stripe/test', requireAuth, async (req, res) => {
   try {
@@ -372,6 +431,9 @@ router.post('/api/lead', async (req, res) => {
       notes: message ? ('Lesson request: ' + message) : 'Lesson request',
     }) });
     tellHolly(`New lesson request: ${first} ${last}`.trim(), { Name: `${first} ${last}`.trim(), Email: email || '-', Phone: phone || '-', Message: message || '-' });
+    if (email) mail.send({ to: email, subject: 'Thanks for reaching out — Tampa Bay Mahj',
+      html: '<div style="font-family:Georgia,serif;color:#2C3327;max-width:460px"><h2 style="color:#3B4832">Thank you, ' + (first || 'friend') + '!</h2><p>Holly has your mahjong lesson request and will be in touch soon to set up your first game.</p><p style="color:#8A6D14">— Tampa Bay Mahj · Tampa &amp; St. Pete</p></div>' }).catch(() => {});
+    if (phone) sms.sendSMS(phone, 'Hi ' + (first || '') + '! Thanks for your Tampa Bay Mahj lesson request — Holly will reach out soon. \u2014 Holly').catch(() => {});
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
