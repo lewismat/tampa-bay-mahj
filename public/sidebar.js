@@ -65,7 +65,6 @@
       item('/students','students','Students')+
       item('/inquiries','inquiry','Inquiry')+
       item('/profile','profile','Profile')+
-      item('/card','card','Public card',true)+
     '</nav>'+
     '<div class="sb-bottom">'+
       '<a href="/settings"'+(path==='/settings'?' class="active"':'')+'><span class="sb-ico">'+svg('settings')+'</span><span class="lbl">Settings</span></a>'+

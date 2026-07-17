@@ -39,7 +39,10 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
 .msg{font-size:.92rem}.msg.ok{color:var(--sage)}.msg.err{color:var(--red)}
 .preview{position:sticky;top:22px}
 .preview .plabel{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sage-soft);font-weight:700;margin-bottom:8px;text-align:center}
-.preview iframe{width:100%;height:640px;border:1px solid var(--tile-edge);border-radius:20px;background:var(--cream);box-shadow:0 14px 34px rgba(59,72,50,.12)}
+.preview iframe{width:100%;height:600px;border:1px solid var(--tile-edge);border-radius:20px;background:var(--cream);box-shadow:0 14px 34px rgba(59,72,50,.12)}
+.copycard{width:100%;margin-top:12px;padding:14px;border:none;border-radius:14px;background:linear-gradient(160deg,var(--gold),#B18A2C);color:#2b2408;font-family:var(--body);font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 8px 20px rgba(201,162,75,.3);display:flex;align-items:center;justify-content:center;gap:8px}
+.copycard:hover{filter:brightness(1.05)}
+.copymsg{text-align:center;font-size:.85rem;color:var(--sage);font-weight:700;min-height:1.1em;margin-top:6px}
 /* icon picker overlay */
 .pick{position:fixed;inset:0;background:rgba(44,51,39,.4);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
 .pick.open{display:flex}
@@ -104,6 +107,8 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
   <div class="preview">
     <div class="plabel">✦ Live preview ✦</div>
     <iframe id="pv" src="/card" title="Card preview"></iframe>
+    <button type="button" class="copycard" id="copyCard"><span>🔗</span> Copy your card link</button>
+    <div class="copymsg" id="copyMsg"></div>
   </div>
 </div>
 
@@ -207,6 +212,11 @@ $('save').addEventListener('click',async function(){
   else{msg.className='msg err';msg.textContent=d.error||'Error saving';}
 });
 $('tbmLogout').addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST'}).then(function(){location.href='/login';});});
+document.getElementById('copyCard').addEventListener('click',function(){
+  var url=location.origin+'/card';
+  if(navigator.clipboard){navigator.clipboard.writeText(url);}else{var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();}
+  var m=document.getElementById('copyMsg');m.textContent='Copied '+url;setTimeout(function(){m.textContent='';},2500);
+});
 (async function(){if(await guard())load();})();
 </script>
 <script src="/sidebar.js"></script>
