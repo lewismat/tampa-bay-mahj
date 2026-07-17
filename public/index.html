@@ -390,5 +390,16 @@
   });
 })();
 </script>
+<script>
+(async function(){
+  try{
+    var c=(await fetch('/api/inquiry-config').then(function(r){return r.json();})).config||{};
+    function setTxt(sel,v){if(v){var el=document.querySelector(sel);if(el)el.textContent=v;}}
+    setTxt('h1',c.heading); setTxt('.script',c.script); setTxt('.tagline',c.tagline); setTxt('.submit-note',c.submit_note);
+    if(c.submit_label){var b=document.getElementById('submitBtn');if(b)b.textContent=c.submit_label;}
+    if(c.event_types&&c.event_types.length){var sel=document.getElementById('eventType');if(sel){sel.innerHTML='<option value="">Choose one…</option>'+c.event_types.map(function(t){return '<option>'+String(t).replace(/</g,'&lt;')+'</option>';}).join('')+'<option>Other</option>';}}
+  }catch(e){}
+})();
+</script>
 </body>
 </html>

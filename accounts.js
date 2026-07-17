@@ -458,6 +458,26 @@ router.post('/api/students/:id/convert', requireAuth, async (req, res) => {
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
+// Public inquiry-form config (homepage reads this).
+router.get('/api/inquiry-config', async (req, res) => {
+  try { const rows = await sb('settings?id=eq.app&select=inquiry_config&limit=1');
+    res.json({ ok: true, config: (rows && rows[0] && rows[0].inquiry_config) || {} });
+  } catch (e) { res.json({ ok: true, config: {} }); }
+});
+router.put('/api/inquiry-config', requireAuth, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const cfg = {
+      heading: clean(b.heading, 120), script: clean(b.script, 120), tagline: clean(b.tagline, 200),
+      submit_label: clean(b.submit_label, 60), submit_note: clean(b.submit_note, 300),
+      event_types: Array.isArray(b.event_types) ? b.event_types.slice(0, 40).map((t) => clean(t, 80)).filter(Boolean) : [],
+    };
+    await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ inquiry_config: cfg, updated_at: new Date().toISOString() }) });
+    res.json({ ok: true });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 /* ================= PAGES ================= */
 const page = (f) => (req, res) => res.sendFile(path.join(__dirname, 'public', f));
 router.get('/login',    page('login.html'));
