@@ -379,10 +379,10 @@ function renderForm(s){
       someone cancels we will email you and hold the seat for 24 hours — first come, first
       served down the line.${s.waiting?` ${s.waiting} ${s.waiting===1?'person is':'people are'} ahead of you.`:''}</div>`:''}
     <div class="grid">
-      <div class="field"><label for="fn">First name</label><input id="fn" autocomplete="given-name"></div>
-      <div class="field"><label for="ln">Last name</label><input id="ln" autocomplete="family-name"></div>
-      <div class="field"><label for="em">Email</label><input id="em" type="email" autocomplete="email"></div>
-      <div class="field"><label for="ph">Phone</label><input id="ph" type="tel" autocomplete="tel"></div>
+      <div class="field"><label for="fn">First name <span style="color:#B3542E">*</span></label><input id="fn" autocomplete="given-name"></div>
+      <div class="field"><label for="ln">Last name <span style="color:#B3542E">*</span></label><input id="ln" autocomplete="family-name"></div>
+      <div class="field"><label for="em">Email <span style="color:#B3542E">*</span></label><input id="em" type="email" autocomplete="email"></div>
+      <div class="field"><label for="ph">Phone <span style="color:#B3542E">*</span></label><input id="ph" type="tel" autocomplete="tel"></div>
       ${isClass?`<div class="field full"><label for="seats">How many of you${waiting?' would be coming':' are coming'}?</label>
         <select id="seats">${seatOpts}</select></div>`:''}
       ${isParty&&!waiting?`
@@ -409,6 +409,7 @@ async function submit(s){
   err.textContent='';
   if(!v('fn')||!v('ln')) return err.textContent='Add your first and last name.';
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('em'))) return err.textContent='That email address does not look right.';
+  if(v('ph').replace(/[^0-9]/g,'').length<10) return err.textContent='Add a phone number so Holly can reach you.';
   btn.disabled=true;btn.textContent=waiting?'Adding you…':'Reserving…';
   try{
     const r=await fetch(waiting?'/api/waitlist':'/api/book',

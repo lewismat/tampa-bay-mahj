@@ -201,6 +201,7 @@ function person(b) {
 function validate(p, slot_id) {
   if (!p.first_name || !p.last_name) return 'Add your first and last name.';
   if (!isEmail(p.email)) return 'That email address does not look right.';
+  if (!p.phone || p.phone.replace(/[^0-9]/g, '').length < 10) return 'Add a phone number so Holly can reach you.';
   if (!slot_id) return 'Pick a time first.';
   return null;
 }
