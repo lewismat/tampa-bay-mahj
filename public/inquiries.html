@@ -1,151 +1,60 @@
 <!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Inquiries — Tampa Bay Mahj</title>
+<title>Inquiry form — Tampa Bay Mahj</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Karla:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="/theme.js"></script>
 <style>
 :root{--cream:#F7F2E4;--cream-2:#EFE7CC;--sage:#4C5B40;--sage-soft:#6B7A5C;--sage-dk:#3B4832;--gold:#C9A24B;--gold-dk:#8A6D14;--red:#B3542E;--ink:#2C3327;--ink-soft:#5D6656;--tile:#FBF8EF;--tile-edge:#DED3B4;--display:'Cormorant Garamond',Georgia,serif;--body:'Karla',system-ui,sans-serif;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--body);background:var(--cream);color:var(--ink);min-height:100vh;background-image:repeating-linear-gradient(90deg,rgba(222,211,180,.16) 0 3px,transparent 3px 30px)}
-.wrap{max-width:1200px;margin:0 auto;padding:24px 22px}
-.top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 22px;display:grid;grid-template-columns:1fr 440px;gap:24px;align-items:start}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.prev{display:none}}
 h1{font-family:var(--display);font-weight:700;font-size:1.95rem;color:var(--sage-dk)}
-.count{color:var(--ink-soft);font-size:.9rem;font-weight:300}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
-.toolbar input{flex:1;min-width:220px;padding:10px 12px;border:1px solid var(--tile-edge);border-radius:10px;background:#fff;font-family:var(--body);font-size:.92rem;color:var(--sage-dk)}
-.filters{display:flex;gap:4px;background:var(--tile);border:1px solid var(--tile-edge);border-radius:10px;padding:3px}
-.fbtn{padding:7px 13px;border:none;border-radius:8px;background:none;color:var(--sage-soft);font-family:var(--body);font-weight:700;font-size:.78rem;cursor:pointer}
-.fbtn.active{background:var(--sage);color:var(--cream)}
-.tablewrap{background:var(--tile);border:1px solid var(--tile-edge);border-radius:14px;overflow:hidden;box-shadow:0 8px 22px rgba(59,72,50,.07)}
-table{width:100%;border-collapse:collapse;font-size:.9rem}
-thead th{background:var(--sage-dk);color:var(--cream);text-align:left;padding:11px 14px;font-weight:700;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-tbody tr.row{border-bottom:1px solid var(--cream-2);cursor:pointer}
-tbody tr.row:nth-child(4n+1){background:rgba(255,255,255,.4)}
-tbody tr.row:hover{background:rgba(201,162,75,.1)}
-tbody td{padding:10px 14px;vertical-align:middle}
-td.nm{font-family:var(--display);font-weight:700;font-size:1.02rem;color:var(--sage-dk)}
-.muted{color:var(--ink-soft)}
-.badge{display:inline-block;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 9px;border-radius:12px}
-.badge.new{background:rgba(201,162,75,.2);color:var(--gold-dk)}
-.badge.contacted{background:rgba(107,122,92,.2);color:var(--sage)}
-.badge.booked{background:rgba(76,91,64,.2);color:var(--sage-dk)}
-.badge.archived{background:var(--cream-2);color:var(--ink-soft)}
-.detail td{background:var(--cream);padding:0}
-.detail .inner{padding:18px 20px}
-.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.dgrid .k{font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sage-soft);font-weight:700}
-.dgrid .v{color:var(--ink);font-size:.94rem;margin-top:2px}
-.dgrid .wide{grid-column:1/-1}
-.setrow{margin-top:14px;display:flex;align-items:center;gap:10px}
-.setrow select{padding:8px 10px;border:1px solid var(--tile-edge);border-radius:8px;font-family:var(--body);background:#fff;color:var(--sage-dk)}
-.empty{padding:30px;text-align:center;color:var(--ink-soft);font-weight:300}
-.tabs{display:flex;gap:6px;margin:12px 0 0}
-.tab{padding:9px 18px;border:1px solid var(--tile-edge);border-radius:10px 10px 0 0;background:var(--tile);color:var(--sage-soft);font-family:var(--body);font-weight:700;font-size:.85rem;cursor:pointer}
-.tab.active{background:var(--sage);color:var(--cream);border-color:var(--sage)}
-.cfgwrap{display:grid;grid-template-columns:1fr 420px;gap:22px;align-items:start;margin-top:14px}
-@media(max-width:900px){.cfgwrap{grid-template-columns:1fr}.cfgprev{display:none}}
-.cfgcol{background:var(--tile);border:1px solid var(--tile-edge);border-radius:14px;padding:20px}
-.cfgcol label{display:block;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--sage);font-weight:700;margin:12px 0 5px}
-.cfgcol input,.cfgcol textarea{width:100%;padding:10px 11px;border:1px solid var(--tile-edge);border-radius:9px;font-family:var(--body);font-size:.92rem;background:#fff;color:var(--sage-dk)}
-.cfgcol textarea{min-height:90px;resize:vertical}
-.cfgsave{margin-top:16px;padding:12px 24px;border:none;border-radius:11px;background:linear-gradient(160deg,var(--sage),var(--sage-dk));color:var(--cream);font-weight:700;cursor:pointer;font-family:var(--body)}
-.cfgmsg{margin-left:12px;font-size:.88rem}
-.cfgprev{position:sticky;top:16px}
+.sub{color:var(--ink-soft);font-weight:300;margin:2px 0 16px}
+.panel{background:var(--tile);border:1px solid var(--tile-edge);border-radius:16px;padding:22px;box-shadow:0 10px 26px rgba(59,72,50,.07)}
+label{display:block;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;color:var(--sage);font-weight:700;margin:14px 0 5px}
+label:first-of-type{margin-top:0}
+input,textarea{width:100%;padding:11px 12px;border:1px solid var(--tile-edge);border-radius:10px;background:#fff;font-family:var(--body);font-size:.95rem;color:var(--sage-dk)}
+textarea{min-height:110px;resize:vertical}
+input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold)}
+.hint{font-size:.75rem;color:var(--ink-soft);font-weight:300;margin-top:4px}
+.save{margin-top:18px;padding:13px 26px;border:none;border-radius:11px;background:linear-gradient(160deg,var(--sage),var(--sage-dk));color:var(--cream);font-weight:700;font-size:1rem;cursor:pointer;font-family:var(--body)}
+.save:hover{filter:brightness(1.05)}
+.msg{margin-left:12px;font-size:.9rem}
+.prev{position:sticky;top:20px}
 .pvlbl{text-align:center;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--sage-soft);font-weight:700;margin-bottom:8px}
-#formPv{width:100%;height:640px;border:1px solid var(--tile-edge);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(59,72,50,.12)}
+.copybtn{width:100%;margin-bottom:8px;padding:13px;border:none;border-radius:14px;background:linear-gradient(160deg,var(--gold),#B18A2C);color:#2b2408;font-family:var(--body);font-weight:700;font-size:1rem;cursor:pointer;box-shadow:0 8px 20px rgba(201,162,75,.3)}
+.copybtn:hover{filter:brightness(1.05)}
+.copymsg{text-align:center;font-size:.82rem;color:var(--sage);font-weight:700;min-height:1em;margin-bottom:6px}
+#formPv{width:100%;height:660px;border:1px solid var(--tile-edge);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(59,72,50,.12)}
 </style></head>
 <body>
 <div class="wrap">
-  <div class="top"><h1>Inquiries</h1><span class="count" id="count">—</span></div>
-  <div class="tabs"><button class="tab active" data-v="list">Received</button><button class="tab" data-v="config">Customize form</button></div>
-  <div id="viewList">
-  <div class="toolbar">
-    <input id="search" placeholder="Search name, email, event…">
-    <div class="filters"><button class="fbtn active" data-f="">All</button><button class="fbtn" data-f="new">New</button><button class="fbtn" data-f="contacted">Contacted</button><button class="fbtn" data-f="booked">Booked</button><button class="fbtn" data-f="archived">Archived</button></div>
-  </div>
-  <div class="tablewrap">
-    <table>
-      <thead><tr><th>Received</th><th>Name</th><th>Event</th><th>Date</th><th>Guests</th><th>Status</th></tr></thead>
-      <tbody id="tbody"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
-    </table>
-  </div>
-  </div>
-  <div id="viewConfig" class="cfgwrap" style="display:none">
-    <div class="cfgcol">
+  <div>
+    <h1>Inquiry form</h1>
+    <p class="sub">Customize the public inquiry form. Everyone who fills it out lands in <b>Students → Leads</b>.</p>
+    <div class="panel">
       <label>Heading</label><input id="c_heading" placeholder="Tampa Bay Mahj">
       <label>Script line</label><input id="c_script" placeholder="with Holly Lewis">
       <label>Tagline</label><input id="c_tagline" placeholder="Elevated Mahjong Experiences · Tampa | St. Pete">
-      <label>Event types (one per line)</label><textarea id="c_types" placeholder="One event type per line"></textarea>
+      <label>Event types</label><textarea id="c_types" placeholder="One per line"></textarea>
+      <div class="hint">One event type per line — these become the dropdown choices.</div>
       <label>Submit button label</label><input id="c_submit" placeholder="Declare Mahjong 🀄">
       <label>Note under the button</label><input id="c_note" placeholder="Holly replies personally, usually within one business day.">
-      <div style="margin-top:6px"><button class="cfgsave" id="c_save">Save form</button><span class="cfgmsg" id="c_msg"></span></div>
+      <div><button class="save" id="c_save">Save form</button><span class="msg" id="c_msg"></span></div>
     </div>
-    <aside class="cfgprev"><div class="pvlbl">✦ Live preview ✦</div><iframe id="formPv" src="/" title="Form preview"></iframe></aside>
   </div>
+  <aside class="prev">
+    <div class="pvlbl">✦ Live preview ✦</div>
+    <button type="button" class="copybtn" id="copyForm"><span>🔗</span> Copy your inquiry form link</button>
+    <div class="copymsg" id="copyMsg"></div>
+    <iframe id="formPv" src="/" title="Form preview"></iframe>
+  </aside>
 </div>
 <script src="/sidebar.js"></script>
 <script>
-var all=[],curFilter='',openId=null;
 function $(id){return document.getElementById(id);}
-function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function fmt(d){return d?new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit',hour:'numeric',minute:'2-digit'}):'';}
-function kv(k,v){return '<div><div class="k">'+k+'</div><div class="v">'+(v?esc(v):'<span class="muted">—</span>')+'</div></div>';}
 async function guard(){var s=await fetch('/api/auth/state').then(r=>r.json());if(!s.authed){location.href='/login';return false;}return true;}
-function render(){
-  var q=($('search').value||'').toLowerCase();
-  var list=all.filter(function(i){
-    if(curFilter&&i.status!==curFilter)return false;
-    if(q){var t=((i.firstName||'')+' '+(i.lastName||'')+' '+(i.email||'')+' '+(i.eventType||'')).toLowerCase();if(t.indexOf(q)<0)return false;}
-    return true;
-  });
-  $('count').textContent=list.length+' inquir'+(list.length===1?'y':'ies');
-  var tb=$('tbody');
-  if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">No inquiries'+((q||curFilter)?' match':' yet')+'.</td></tr>';return;}
-  tb.innerHTML=list.map(function(i){
-    return '<tr class="row" data-id="'+i.id+'">'+
-      '<td class="muted">'+fmt(i.submittedAt)+'</td>'+
-      '<td class="nm">'+esc((i.firstName||'')+' '+(i.lastName||''))+'<div class="muted" style="font-size:.8rem">'+esc(i.email||'')+'</div></td>'+
-      '<td>'+esc(i.eventType||'')+'</td>'+
-      '<td class="muted">'+esc(i.eventDate||'')+(i.startTime?' · '+esc(i.startTime):'')+'</td>'+
-      '<td class="muted">'+esc(i.guestCount||'')+'</td>'+
-      '<td><span class="badge '+esc(i.status)+'">'+esc(i.status)+'</span></td></tr>'+
-      '<tr class="detail" id="d_'+i.id+'" style="display:none"><td colspan="6"><div class="inner" id="di_'+i.id+'"></div></td></tr>';
-  }).join('');
-  Array.prototype.forEach.call(tb.querySelectorAll('tr.row'),function(tr){tr.addEventListener('click',function(){toggle(tr.getAttribute('data-id'));});});
-}
-function toggle(id){
-  var d=$('d_'+id);
-  if(openId&&openId!==id)$('d_'+openId).style.display='none';
-  if(d.style.display!=='none'){d.style.display='none';openId=null;return;}
-  d.style.display='';openId=id;
-  var i=all.filter(function(x){return x.id===id;})[0];if(!i)return;
-  var addr=[i.streetAddress,i.city,i.state,i.zip].filter(Boolean).join(', ');
-  var opts=['new','contacted','booked','archived'].map(function(o){return '<option'+(o===i.status?' selected':'')+'>'+o+'</option>';}).join('');
-  $('di_'+id).innerHTML='<div class="dgrid">'+
-    kv('Phone',i.phone)+kv('Email',i.email)+kv('Event type',i.eventType)+kv('Guests expected',i.guestCount)+
-    kv('Date',i.eventDate)+kv('Start time',i.startTime)+kv('Location',i.locationName)+kv('Address',addr)+
-    '<div class="wide">'+kv('About the event',i.aboutEvent)+'</div>'+
-    (i.anythingElse?'<div class="wide">'+kv('Anything else',i.anythingElse)+'</div>':'')+
-    '</div>'+
-    '<div class="setrow"><span class="k">Status:</span><select id="st_'+id+'">'+opts+'</select><span class="muted" id="stmsg_'+id+'" style="font-size:.85rem"></span></div>';
-  $('di_'+id).addEventListener('click',function(e){e.stopPropagation();});
-  $('st_'+id).addEventListener('change',async function(){
-    var m=$('stmsg_'+id);m.textContent='Saving…';
-    var r=await fetch('/api/inquiries/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:this.value})}).then(x=>x.json());
-    i.status=$('st_'+id).value;
-    if(r.ok){m.textContent='Saved ✓';render();$('d_'+id)&&($('d_'+id).style.display='');}else{m.textContent='Error';}
-  });
-}
-$('search').addEventListener('input',render);
-Array.prototype.forEach.call(document.querySelectorAll('.fbtn'),function(b){b.addEventListener('click',function(){document.querySelectorAll('.fbtn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');curFilter=b.getAttribute('data-f');render();});});
-async function load(){var d=await fetch('/api/dashboard').then(r=>r.json());all=(d&&d.inquiries)||[];render();}
-Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(t){t.addEventListener('click',function(){
-  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');
-  var v=t.getAttribute('data-v');
-  $('viewList').style.display=v==='list'?'':'none';
-  $('viewConfig').style.display=v==='config'?'':'none';
-  if(v==='config')loadConfig();
-});});
 async function loadConfig(){
   var c=(await fetch('/api/inquiry-config').then(function(r){return r.json();})).config||{};
   $('c_heading').value=c.heading||'';$('c_script').value=c.script||'';$('c_tagline').value=c.tagline||'';
@@ -156,8 +65,13 @@ $('c_save').addEventListener('click',async function(){
   var m=$('c_msg');m.style.color='';m.textContent='Saving…';
   var body={heading:$('c_heading').value.trim(),script:$('c_script').value.trim(),tagline:$('c_tagline').value.trim(),submit_label:$('c_submit').value.trim(),submit_note:$('c_note').value.trim(),event_types:$('c_types').value.split('\n').map(function(x){return x.trim();}).filter(Boolean)};
   var d=await fetch('/api/inquiry-config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();});
-  if(d.ok){m.style.color='var(--sage)';m.textContent='Saved \u2713';var pv=$('formPv');if(pv)pv.src='/?t='+Date.now();}else{m.style.color='#B3542E';m.textContent=d.error||'Error';}
+  if(d.ok){m.style.color='var(--sage)';m.textContent='Saved ✓';$('formPv').src='/?t='+Date.now();}else{m.style.color='#B3542E';m.textContent=d.error||'Error';}
 });
-(async function(){if(await guard())load();})();
+$('copyForm').addEventListener('click',function(){
+  var url=location.origin+'/';
+  if(navigator.clipboard){navigator.clipboard.writeText(url);}else{var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();}
+  var m=$('copyMsg');m.textContent='Copied '+url;setTimeout(function(){m.textContent='';},2500);
+});
+(async function(){if(await guard())loadConfig();})();
 </script>
 </body></html>

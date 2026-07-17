@@ -72,6 +72,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
 .pv-copy:hover{filter:brightness(1.05)}
 .pv-copymsg{text-align:center;font-size:.85rem;color:var(--sage,#4C5B40);font-weight:700;min-height:1.1em;margin-top:6px}
 @media(max-width:1000px){.wrap{flex-direction:column}.sched-preview{width:100%;position:static}}
+.atbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.atbl th{background:var(--sage-dk,#3B4832);color:var(--cream,#F7F2E4);text-align:left;padding:9px 12px;font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700}
+.atbl td{padding:8px 12px;border-bottom:1px solid #EFE7CC}
+.atbl tr:hover td{background:rgba(201,162,75,.08)}
+.atbl .an{font-family:var(--display);font-weight:700;color:var(--sage-dk,#3B4832);font-size:1rem}
+.atbl .am{color:var(--ink-soft,#5D6656)}
+.attsearch{width:100%;padding:10px 12px;border:1px solid var(--tile-edge);border-radius:9px;margin-bottom:12px;font-family:'Karla',sans-serif;font-size:.9rem}
 </style>
 <script src="/theme.js"></script>
 </head>
@@ -125,6 +132,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
     <h2>Your calendar</h2>
     <div id="list"><p class="empty">Loading…</p></div>
   </div>
+  <div class="card">
+    <h2>Everyone signed up <span id="attCount" style="font-size:.9rem;color:#5D6656;font-weight:400"></span></h2>
+    <input class="attsearch" id="attSearch" placeholder="Search attendees…">
+    <div id="attList"><p class="empty">Loading…</p></div>
+  </div>
   </div>
   <aside class="sched-preview">
     <div class="pv-label">✦ Booking page preview ✦</div>
@@ -143,6 +155,26 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=d=>new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'short',month:'short',day:'numeric',
   hour:'numeric',minute:'2-digit'}).format(new Date(d));
 
+var __att=[];
+function drawAttendees(){
+  var el=document.getElementById('attList'); if(!el) return;
+  var q=(document.getElementById('attSearch').value||'').toLowerCase();
+  var rows=__att.filter(function(r){return !q||((r.name+' '+r.email+' '+r.event).toLowerCase().indexOf(q)>-1);});
+  document.getElementById('attCount').textContent=rows.length?('· '+rows.length+' sign-up'+(rows.length===1?'':'s')):'';
+  if(!rows.length){el.innerHTML='<p class="empty">No one signed up yet.</p>';return;}
+  el.innerHTML='<table class="atbl"><thead><tr><th>Name</th><th>Event</th><th>Date</th><th>Seats</th><th>Contact</th></tr></thead><tbody>'+
+    rows.map(function(r){return '<tr><td class="an">'+esc(r.name||'—')+'</td><td>'+esc(r.event)+'</td><td>'+fmt(r.when)+'</td><td>'+r.seats+'</td><td class="am">'+esc(r.email||r.phone||'')+'</td></tr>';}).join('')+'</tbody></table>';
+}
+function renderAttendees(slots){
+  __att=[];
+  (slots||[]).forEach(function(s){(s.bookings||[]).filter(function(b){return b.status==='confirmed';}).forEach(function(b){
+    __att.push({name:((b.first_name||'')+' '+(b.last_name||'')).trim(),event:LABEL[s.slot_type]||s.slot_type,when:s.starts_at,seats:b.seats||1,email:b.email||'',phone:b.phone||''});
+  });});
+  __att.sort(function(a,b){return new Date(a.when)-new Date(b.when);});
+  drawAttendees();
+}
+var _as=document.getElementById('attSearch'); if(_as) _as.addEventListener('input',drawAttendees);
+
 const typeSel=document.getElementById('type');
 typeSel.onchange=()=>document.getElementById('seatfield').hidden=typeSel.value!=='group_class';
 
@@ -155,6 +187,7 @@ async function load(){
     if(r.status===401){ location.href='/login'; return; }
     if(!r.ok) throw new Error('Could not load your calendar.');
     const slots=await r.json();
+    renderAttendees(slots);
     if(!slots.length){ el.innerHTML='<p class="empty">Nothing on the calendar yet. Open a date above.</p>'; return; }
     const now=Date.now();
     el.innerHTML=slots.map(s=>{
