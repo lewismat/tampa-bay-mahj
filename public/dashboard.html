@@ -147,16 +147,7 @@
   </div>
   <div id="revconnect" style="display:none;margin:2px 0 14px;font-size:.9rem;color:#5D6656">💳 Connect Stripe in <a href="/settings" style="color:#8A6D14;font-weight:700">Settings</a> to see revenue here.</div>
 
-  <div class="funnel" id="funnel">
-    <h2 class="funnel-title">Your funnel</h2>
-    <div class="fstage f1"><div class="fbar"><span class="fn" id="fVisit">–</span><span class="fl">Visited the inquiry form</span></div></div>
-    <div class="fconv" id="fc1">–</div>
-    <div class="fstage f2"><div class="fbar"><span class="fn" id="fFill">–</span><span class="fl">Filled out the form · leads</span></div></div>
-    <div class="fconv" id="fc2">–</div>
-    <div class="fstage f3"><div class="fbar"><span class="fn" id="fPay">–</span><span class="fl">Paid · became students</span></div></div>
-  </div>
-
-  <div class="evhead">
+<div class="evhead">
     <h2 style="font-family:'Cormorant Garamond',serif;color:#3B4832">Upcoming events</h2>
     <select id="evRange">
       <option value="next3">Next 3 events</option>
@@ -372,24 +363,6 @@
   fromEl.addEventListener('change',apply);toEl.addEventListener('change',apply);
   clearEl.addEventListener('click',function(){se.value='';st.value='';fromEl.value='';toEl.value='';apply();});
   new MutationObserver(apply).observe(body,{childList:true});
-})();
-</script>
-<script>
-(async function(){
-  try{
-    var dd=await fetch('/api/dashboard').then(function(r){return r.json();});
-    var visit=(dd.stats&&dd.stats.uniqueVisitors)||0, fill=(dd.stats&&dd.stats.totalInquiries)||0, pay=0;
-    try{var st=await fetch('/api/students').then(function(r){return r.json();});pay=(st.students||[]).filter(function(s){return s.status==='student';}).length;}catch(e){}
-    document.getElementById('fVisit').textContent=visit;
-    document.getElementById('fFill').textContent=fill;
-    document.getElementById('fPay').textContent=pay;
-    function pc(a,b){return b>0?Math.round(a/b*100):0;}
-    document.getElementById('fc1').textContent='↓ '+pc(fill,visit)+'% filled out the form';
-    document.getElementById('fc2').textContent='↓ '+pc(pay,fill)+'% paid & became students';
-    var base=Math.max(visit,fill,1);
-    document.querySelector('.f2 .fbar').style.width=Math.max(42,Math.round(fill/base*100))+'%';
-    document.querySelector('.f3 .fbar').style.width=Math.max(32,Math.round(pay/base*100))+'%';
-  }catch(e){}
 })();
 </script>
 <script src="/sidebar.js"></script>
