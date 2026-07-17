@@ -463,6 +463,7 @@ const page = (f) => (req, res) => res.sendFile(path.join(__dirname, 'public', f)
 router.get('/login',    page('login.html'));
 router.get('/profile',  page('profile.html'));
 router.get('/students', page('students.html'));
+router.get('/inquiries', page('inquiries.html'));
 router.get('/card',     page('card.html'));
 router.get('/settings', page('settings.html'));
 router.get('/request',  (req, res) => res.redirect('/'));

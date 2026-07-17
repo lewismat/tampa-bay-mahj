@@ -5,6 +5,7 @@
     schedule:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/>',
     students:'<circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.6a3 3 0 0 1 0 4.8M20.5 20a5.5 5.5 0 0 0-3.5-5.1"/>',
     profile:'<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10.5" r="2"/><path d="M5.5 17a3.5 3.5 0 0 1 7 0"/><path d="M15 9.5h4M15 13h4"/>',
+    inquiry:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
     card:'<path d="M12 3c.5 3 1.5 4 4.5 4.5C13.5 8 12.5 9 12 12c-.5-3-1.5-4-4.5-4.5C10.5 7 11.5 6 12 3Z"/>',
     settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 12a7.5 7.5 0 0 0-.1-1.2l1.9-1.5-1.8-3.1-2.3.9a7 7 0 0 0-2-1.2L14.6 2.5h-3.6l-.4 2.4a7 7 0 0 0-2 1.2l-2.3-.9L2.5 8.3l1.9 1.5A7.5 7.5 0 0 0 4.3 12c0 .4 0 .8.1 1.2l-1.9 1.5 1.8 3.1 2.3-.9a7 7 0 0 0 2 1.2l.4 2.4h3.6l.4-2.4a7 7 0 0 0 2-1.2l2.3.9 1.8-3.1-1.9-1.5c.1-.4.1-.8.1-1.2Z"/>',
     logout:'<path d="M9 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H9"/><path d="M14 12h7M18 8l3 4-3 4"/>',
@@ -62,6 +63,7 @@
       item('/dashboard','dashboard','Dashboard')+
       item('/schedule','schedule','Events')+
       item('/students','students','Students')+
+      item('/inquiries','inquiry','Inquiry')+
       item('/profile','profile','Profile')+
       item('/card','card','Public card',true)+
     '</nav>'+
