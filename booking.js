@@ -464,6 +464,7 @@ router.post('/api/admin/slots', auth.requireAuth, async (req, res) => {
       method: 'POST',
       body: JSON.stringify({
         slot_type: b.slot_type,
+        title: clean(b.title, 120) || null,
         starts_at: new Date(b.starts_at).toISOString(),
         duration_minutes: Math.min(600, Math.max(15, parseInt(b.duration_minutes, 10) || 120)),
         location: clean(b.location, 200) || null,

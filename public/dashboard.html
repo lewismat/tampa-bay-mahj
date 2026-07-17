@@ -181,6 +181,11 @@
   </div>
 
   <h2>Recent Visits</h2>
+  <div class="inqfilter">
+    <input id="visSearch" placeholder="Search visitor, source, device…">
+    <input type="date" id="visFrom" title="From date"><input type="date" id="visTo" title="To date">
+    <button id="visClear" type="button" style="padding:9px 14px;border:1px solid #DED3B4;border-radius:9px;background:#fff;color:#5D6656;font-family:'Karla',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer">Clear</button>
+  </div>
   <div class="panel">
     <table class="visits">
       <thead><tr><th>When</th><th>Visitor</th><th class="hide-sm">Came From</th><th class="hide-sm">Device</th></tr></thead>
@@ -273,8 +278,9 @@
       var vb = document.getElementById('visitsBody');
       vb.innerHTML = '';
       document.getElementById('visEmpty').style.display = d.visits.length ? 'none':'block';
-      d.visits.slice(0,50).forEach(function(v){
+      d.visits.forEach(function(v){
         var tr = document.createElement('tr');
+        tr.setAttribute('data-date', v.time || '');
         tr.innerHTML =
           '<td>'+fmt(v.time)+'</td>'+
           '<td>Visitor '+esc(shortId(v.visitorId))+'<div class="muted">'+esc(v.ip)+'</div></td>'+
@@ -332,7 +338,7 @@
     list.innerHTML=out.map(function(s){var taken=s.seats_taken||0,tot=s.seats_total||0,held=s.seats_held||0,full=(tot-taken-held)<=0;
       var bk=(s.bookings||[]).filter(function(b){return b.status==='confirmed';});
       var att=bk.length?bk.map(function(b){return '<div class="ev-att"><b>'+esc(((b.first_name||'')+' '+(b.last_name||'')).trim()||'—')+'</b> · '+(b.seats||1)+' seat'+((b.seats||1)==1?'':'s')+(b.email?' · '+esc(b.email):'')+(b.phone?' · '+esc(b.phone):'')+'</div>';}).join(''):'<div class="ev-att muted">No sign-ups yet.</div>';
-      return '<div class="ev-row" data-ev="'+s.id+'"><span class="ev-caret" id="evc_'+s.id+'">▸</span><div class="ev-when">'+fmtWhen(s.starts_at)+'</div><div class="ev-meta"><b>'+(TYPE[s.slot_type]||s.slot_type)+'</b>'+(s.location?' · '+esc(s.location):'')+'</div><div class="ev-seats'+(full?' full':'')+'">'+(tot?(taken+'/'+tot+' seats'+(full?' · full':'')):'')+'</div></div><div class="ev-detail" id="evd_'+s.id+'" style="display:none">'+att+'</div>';}).join('');
+      return '<div class="ev-row" data-ev="'+s.id+'"><span class="ev-caret" id="evc_'+s.id+'">▸</span><div class="ev-when">'+fmtWhen(s.starts_at)+'</div><div class="ev-meta"><b>'+esc(s.title||TYPE[s.slot_type]||s.slot_type)+'</b>'+(s.location?' · '+esc(s.location):'')+'</div><div class="ev-seats'+(full?' full':'')+'">'+(tot?(taken+'/'+tot+' seats'+(full?' · full':'')):'')+'</div></div><div class="ev-detail" id="evd_'+s.id+'" style="display:none">'+att+'</div>';}).join('');
     Array.prototype.forEach.call(list.querySelectorAll('.ev-row'),function(row){row.addEventListener('click',function(){var id=row.getAttribute('data-ev');var dd=document.getElementById('evd_'+id);var c=document.getElementById('evc_'+id);var show=dd.style.display==='none';dd.style.display=show?'':'none';if(c)c.textContent=show?'▾':'▸';});});
   }
   rangeSel.addEventListener('change',function(){localStorage.setItem('tbm_evrange',rangeSel.value);render();});
@@ -362,6 +368,26 @@
   se.addEventListener('input',apply);st.addEventListener('change',apply);
   fromEl.addEventListener('change',apply);toEl.addEventListener('change',apply);
   clearEl.addEventListener('click',function(){se.value='';st.value='';fromEl.value='';toEl.value='';apply();});
+  new MutationObserver(apply).observe(body,{childList:true});
+})();
+</script>
+<script>
+(function(){
+  var se=document.getElementById('visSearch'),from=document.getElementById('visFrom'),to=document.getElementById('visTo'),clr=document.getElementById('visClear'),body=document.getElementById('visitsBody');
+  if(!se||!body)return;
+  function apply(){
+    var q=(se.value||'').toLowerCase(),f=from.value,t=to.value,active=!!(q||f||t),shown=0;
+    Array.prototype.forEach.call(body.querySelectorAll('tr'),function(row){
+      var txt=row.textContent.toLowerCase();var dt=(row.getAttribute('data-date')||'').slice(0,10);
+      var ok=(!q||txt.indexOf(q)>-1);
+      if(ok&&f)ok=dt>=f; if(ok&&t)ok=dt<=t;
+      if(ok&&!active)ok=shown<10;
+      if(ok)shown++;
+      row.style.display=ok?'':'none';
+    });
+  }
+  se.addEventListener('input',apply);from.addEventListener('change',apply);to.addEventListener('change',apply);
+  clr.addEventListener('click',function(){se.value='';from.value='';to.value='';apply();});
   new MutationObserver(apply).observe(body,{childList:true});
 })();
 </script>

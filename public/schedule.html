@@ -94,15 +94,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
 <div class="wrap">
   <div class="sched-main">
 
-  <div class="tabs">
-    <a href="/dashboard">Inquiries</a>
-    <a href="/schedule" class="on">Scheduling</a>
-    <a href="/book" target="_blank">View booking page ↗</a>
-  </div>
 
   <div class="card">
     <h2>Open a date</h2>
     <div class="grid">
+      <div class="field"><label for="title">Event name</label><input id="title" placeholder="e.g. Beginner Bootcamp"></div>
       <div class="field"><label for="type">Session</label>
         <select id="type">
           <option value="private_lesson">Private lesson</option>
@@ -168,7 +164,7 @@ function drawAttendees(){
 function renderAttendees(slots){
   __att=[];
   (slots||[]).forEach(function(s){(s.bookings||[]).filter(function(b){return b.status==='confirmed';}).forEach(function(b){
-    __att.push({name:((b.first_name||'')+' '+(b.last_name||'')).trim(),event:LABEL[s.slot_type]||s.slot_type,when:s.starts_at,seats:b.seats||1,email:b.email||'',phone:b.phone||''});
+    __att.push({name:((b.first_name||'')+' '+(b.last_name||'')).trim(),event:s.title||LABEL[s.slot_type]||s.slot_type,when:s.starts_at,seats:b.seats||1,email:b.email||'',phone:b.phone||''});
   });});
   __att.sort(function(a,b){return new Date(a.when)-new Date(b.when);});
   drawAttendees();
@@ -201,7 +197,7 @@ async function load(){
         <div class="row">
           <div>
             <div class="when">${fmt(s.starts_at)}</div>
-            <div class="meta">${LABEL[s.slot_type]} · ${s.duration_minutes} min${
+            <div class="meta">${s.title?esc(s.title)+' · ':''}${LABEL[s.slot_type]} · ${s.duration_minutes} min${
               s.location?' · '+esc(s.location):''}${s.price_note?' · '+esc(s.price_note):''}</div>
             <div class="meta" style="margin-top:6px">
               <span class="pill ${full?'full':''}">${
@@ -267,7 +263,7 @@ document.getElementById('add').onclick=async()=>{
     const offset=new Intl.DateTimeFormat('en-US',{timeZone:TZ,timeZoneName:'longOffset'})
       .formatToParts(local).find(p=>p.type==='timeZoneName').value.replace('GMT','')||'-04:00';
     const r=await fetch('/api/admin/slots',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({slot_type:v('type'),starts_at:`${v('date')}T${v('time')}:00${offset}`,
+      body:JSON.stringify({slot_type:v('type'),title:v('title'),starts_at:`${v('date')}T${v('time')}:00${offset}`,
         duration_minutes:v('dur'),seats_total:v('seats'),location:v('loc'),price_note:v('price'),notes:v('notes')})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Could not open that date.');

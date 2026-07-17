@@ -347,7 +347,7 @@ function renderPanel(map){
       <button class="slot ${s.seats_left?'':'full'}" data-id="${s.id}" aria-pressed="${selSlot===s.id}">
         <span>
           <span class="when">${time(s.starts_at)}${s.seats_left?'':'<span class="tag">Full</span>'}</span>
-          <span class="what">${MARK[s.slot_type]} ${LABEL[s.slot_type]} · ${s.duration_minutes} min${
+          <span class="what">${MARK[s.slot_type]} ${esc(s.title||LABEL[s.slot_type])} · ${s.duration_minutes} min${
             s.location?' · '+esc(s.location):''}</span>
         </span>
         <span class="right">
@@ -430,7 +430,7 @@ async function submit(s){
 function onList(s,d){
   document.getElementById('panel').innerHTML=`<div class="panel"><div class="done">
     <h3>You’re #${d.position} in line.</h3>
-    <p><strong>${LABEL[s.slot_type]}</strong> — ${longDate(selDay)} at ${time(s.starts_at)}</p>
+    <p><strong>${esc(s.title||LABEL[s.slot_type])}</strong> — ${longDate(selDay)} at ${time(s.starts_at)}</p>
     ${s.location?`<p>${esc(s.location)}</p>`:''}
     <p>${d.already?'You were already on this list.':'Check your email — we sent your place in line.'}
        If a seat opens, we’ll hold it for you for 24 hours.</p>
