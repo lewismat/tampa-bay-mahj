@@ -72,7 +72,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
 .pv-copy:hover{filter:brightness(1.05)}
 .pv-copymsg{text-align:center;font-size:.85rem;color:var(--sage,#4C5B40);font-weight:700;min-height:1.1em;margin-top:6px}
 @media(max-width:1000px){.wrap{flex-direction:column}.sched-preview{width:100%;position:static}}
-.atbl{width:100%;border-collapse:collapse;font-size:.88rem}
+@media(max-width:640px){.wrap{padding:16px 12px}}
+#attList{overflow-x:auto}
+.atbl{width:100%;min-width:520px;border-collapse:collapse;font-size:.88rem}
 .atbl th{background:var(--sage-dk,#3B4832);color:var(--cream,#F7F2E4);text-align:left;padding:9px 12px;font-size:.66rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700}
 .atbl td{padding:8px 12px;border-bottom:1px solid #EFE7CC}
 .atbl tr:hover td{background:rgba(201,162,75,.08)}

@@ -23,8 +23,8 @@ h1{font-family:var(--display);font-weight:700;font-size:1.95rem;color:var(--sage
 .addform .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .addform input,.addform select{padding:9px 10px;border:1px solid var(--tile-edge);border-radius:8px;font-family:var(--body);font-size:.9rem;width:100%;background:#fff;color:var(--sage-dk)}
 .addform .go{margin-top:12px;padding:10px 20px;border:none;border-radius:9px;background:var(--sage);color:var(--cream);font-weight:700;cursor:pointer}
-.tablewrap{background:var(--tile);border:1px solid var(--tile-edge);border-radius:14px;overflow:hidden;box-shadow:0 8px 22px rgba(59,72,50,.07)}
-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.tablewrap{background:var(--tile);border:1px solid var(--tile-edge);border-radius:14px;overflow-x:auto;box-shadow:0 8px 22px rgba(59,72,50,.07)}
+table{width:100%;min-width:660px;border-collapse:collapse;font-size:.9rem}
 thead th{position:sticky;top:0;background:var(--sage-dk);color:var(--cream);text-align:left;padding:11px 14px;font-weight:700;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap;z-index:1}
 thead th .ar{opacity:.5;font-size:.7rem}
 tbody tr.row{border-bottom:1px solid var(--cream-2);cursor:pointer}
@@ -55,6 +55,13 @@ td.nm{font-family:var(--display);font-weight:700;font-size:1.02rem;color:var(--s
 .hist .h{font-size:.85rem;color:var(--ink-soft);padding:3px 0}
 .hist .h b{color:var(--sage-dk)}
 .empty{padding:30px;text-align:center;color:var(--ink-soft);font-weight:300}
+@media(max-width:640px){
+.wrap{padding:16px 12px}
+.addbtn{margin-left:0;width:100%}
+.toolbar .search{min-width:100%}
+.filters,.toolbar select{width:100%}
+.dgrid{grid-template-columns:1fr}
+}
 </style></head>
 <body>
 <div class="wrap">
