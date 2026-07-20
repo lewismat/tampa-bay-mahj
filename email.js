@@ -13,7 +13,10 @@
  */
 
 const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const SB_KEY =
+  process.env.SUPABASE_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Credentials live in the settings table so Holly can manage them in the app.
 // Env vars still win if present, so existing deploys keep working.
