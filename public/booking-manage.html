@@ -66,7 +66,8 @@ function draw(b){
     ${cancelled
       ? `<div class="btns"><a class="btn solid" href="/book">Find another time</a></div>`
       : `<div class="btns">
-          <a class="btn solid" href="/booking/${esc(token)}/calendar.ics">Add to calendar</a>
+          <a class="btn solid" href="/booking/${esc(token)}/google" target="_blank" rel="noopener">Add to Google Calendar</a>
+          <a class="btn" href="/booking/${esc(token)}/calendar.ics">Apple / Outlook (.ics)</a>
           <button class="btn danger" id="cx">Cancel booking</button>
         </div>`}
   `;

@@ -139,7 +139,8 @@ function draw(w){
       <div class="when">${when(s.starts_at)}</div>
       ${s.location?`<p>${esc(s.location)}</p>`:''}
       <div class="btns">
-        ${w.manage_url?`<a class="btn solid" href="${w.manage_url}/calendar.ics">Add to calendar</a>
+        ${w.manage_url?`<a class="btn solid" href="${w.manage_url}/google" target="_blank" rel="noopener">Add to Google Calendar</a>
+        <a class="btn" href="${w.manage_url}/calendar.ics">Apple / Outlook (.ics)</a>
         <a class="btn" href="${w.manage_url}">View or cancel</a>`:''}
       </div>`;
     return;

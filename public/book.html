@@ -492,7 +492,8 @@ function confirmed(s,d){
     ${s.location?`<p>${esc(s.location)}</p>`:''}
     <p>Holly has your details. Check your email for the confirmation.</p>
     <div class="donebtns">
-      <a class="ghost" href="${d.manage_url}/calendar.ics">Add to calendar</a>
+      <a class="ghost" href="${d.manage_url}/google" target="_blank" rel="noopener">Add to Google Calendar</a>
+      <a class="ghost" href="${d.manage_url}/calendar.ics">Apple / Outlook (.ics)</a>
       <a class="ghost" href="${d.manage_url}">View or cancel</a>
     </div>
   </div></div>`;

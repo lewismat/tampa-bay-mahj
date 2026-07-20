@@ -587,7 +587,7 @@ router.get('/booking/:token/calendar.ics', async (req, res) => {
       `DTSTAMP:${stamp(bk.created_at)}`,
       `DTSTART:${stamp(s.starts_at)}`,
       `DTEND:${stamp(endsAt(s))}`,
-      `SUMMARY:${TYPE_LABEL[s.slot_type]} with Holly — Tampa Bay Mahj`,
+      `SUMMARY:${s.title || TYPE_LABEL[s.slot_type] + ' with Holly'} — Tampa Bay Mahj`,
       `LOCATION:${(s.location || [bk.street_address, bk.city, bk.state].filter(Boolean).join(', ') || 'TBD').replace(/,/g, '\\,')}`,
       `DESCRIPTION:Manage this booking: ${SITE_URL}/booking/${req.params.token}`,
       'END:VEVENT', 'END:VCALENDAR',
@@ -597,6 +597,26 @@ router.get('/booking/:token/calendar.ics', async (req, res) => {
     res.send(ics);
   } catch {
     res.status(500).send('Could not build that calendar file.');
+  }
+});
+
+// Google Calendar cannot import a downloaded .ics, so hand Gmail users a prefilled event instead.
+router.get('/booking/:token/google', async (req, res) => {
+  try {
+    const [bk] = await sb(`bookings?select=*,slots(*)&manage_token=eq.${encodeURIComponent(req.params.token)}`);
+    if (!bk) return res.status(404).send('Not found.');
+    const s = bk.slots;
+    const stamp = (d) => new Date(d).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const url = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({
+      action: 'TEMPLATE',
+      text: `${s.title || TYPE_LABEL[s.slot_type] + ' with Holly'} — Tampa Bay Mahj`,
+      dates: `${stamp(s.starts_at)}/${stamp(endsAt(s))}`,
+      location: s.location || [bk.street_address, bk.city, bk.state, bk.zip].filter(Boolean).join(', ') || '',
+      details: `Manage or cancel this booking: ${SITE_URL}/booking/${req.params.token}`,
+    }).toString();
+    res.redirect(url);
+  } catch {
+    res.status(500).send('Could not build that calendar link.');
   }
 });
 
