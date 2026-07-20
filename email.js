@@ -103,7 +103,8 @@ function bookingConfirmed(booking, slot, manageToken) {
       big(when(slot.starts_at)) +
       p(`${slot.duration_minutes} minutes${booking.seats > 1 ? ` · ${booking.seats} seats` : ''}`) +
       where(slot) +
-      btn(`${url}/calendar.ics`, 'Add to calendar') +
+      btn(`${url}/google`, 'Add to Google Calendar') +
+      btn(`${url}/calendar.ics`, 'Apple / Outlook (.ics)', false) +
       btn(url, 'View or cancel', false) +
       p('Nothing to bring — Holly provides the tiles and the cards.')
     ),
@@ -157,7 +158,8 @@ function offerClaimed(offer, manageToken) {
       p(`Hi ${esc(offer.first_name)} — you’re off the list and on the table.`) +
       big(when(offer.starts_at)) +
       where(offer) +
-      btn(`${url}/calendar.ics`, 'Add to calendar') +
+      btn(`${url}/google`, 'Add to Google Calendar') +
+      btn(`${url}/calendar.ics`, 'Apple / Outlook (.ics)', false) +
       btn(url, 'View or cancel', false)
     ),
   });
