@@ -45,17 +45,19 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
     </div>
 
     <div class="panel">
-      <h2 style="font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0 0 4px">&#10024; Add your own section</h2>
-      <p class="sub" style="margin:0 0 10px">Ask Claude for a block of HTML &mdash; a welcome note, a photo, pricing, testimonials, anything &mdash; then paste it below and it appears on your form.</p>
-      <label>Where should it go?</label>
-      <select id="c_pos"><option value="above">Above the form</option><option value="below">Below the form</option></select>
-      <label>Paste your HTML here</label>
-      <textarea id="c_html" rows="10" placeholder="&lt;h2&gt;Welcome!&lt;/h2&gt;&#10;&lt;p&gt;Tell me a little about your group and I&rsquo;ll be in touch.&lt;/p&gt;"></textarea>
-      <div class="hint">Scripts and embeds are stripped out automatically for safety &mdash; text, headings, images, links and styling all work. Leave it empty to remove the section.</div>
-      <div><button class="save" id="c_save2">Save section</button><span class="msg" id="c_msg2"></span></div>
+      <h2 style="font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0 0 4px">&#10024; Background &amp; styling</h2>
+      <p class="sub" style="margin:0 0 10px">Ask Claude for CSS, paste it here, and it restyles the whole form &mdash; background, colors, fonts, spacing.</p>
+      <label>Paste your CSS here</label>
+      <textarea id="c_css" rows="12" placeholder="body{background:#FBF7E6;}"></textarea>
+      <div class="hint">CSS only &mdash; no &lt;style&gt; tags needed. Scripts and remote imports are stripped automatically. Empty the box to go back to the standard look.</div>
+      <div><button class="save" id="c_save2">Save styling</button><span class="msg" id="c_msg2"></span></div>
       <details style="margin-top:12px">
         <summary style="cursor:pointer;font-size:.85rem;color:var(--ink-soft)">What do I ask Claude for?</summary>
-        <p class="hint" style="margin-top:8px">Copy this: &ldquo;Write me a short block of HTML for my mahjong inquiry page. Cream and sage green, elegant Southern feel. Just the HTML, no explanation, and no &lt;script&gt; tags.&rdquo; Then paste whatever it gives you into the box above and hit Save section.</p>
+        <p class="hint" style="margin-top:8px">Copy this and paste it to Claude:</p>
+        <pre id="promptTxt" style="white-space:pre-wrap;background:var(--tile);border:1px solid var(--tile-edge);border-radius:8px;padding:10px;font-size:.78rem;line-height:1.5;margin:6px 0">Write me CSS to restyle my mahjong inquiry form. Elegant Charleston/Savannah feel, cream and sage green with soft gold. Give me only CSS, no explanation and no &lt;style&gt; tags.
+
+Selectors I have: body, .wrap, .card, h1, .script, .tagline, .grid, .field, label, input, select, textarea, button, .submit-zone, .submit-note</pre>
+        <button class="save" id="copyPrompt" style="font-size:.8rem">Copy this prompt</button>
       </details>
     </div>
   </div>
@@ -75,19 +77,24 @@ async function loadConfig(){
   $('c_heading').value=c.heading||'';$('c_script').value=c.script||'';$('c_tagline').value=c.tagline||'';
   $('c_submit').value=c.submit_label||'';$('c_note').value=c.submit_note||'';
   $('c_types').value=(c.event_types||[]).join('\n');
-  if($('c_html'))$('c_html').value=c.custom_html||'';
-  if($('c_pos'))$('c_pos').value=c.custom_position||'above';
+  if($('c_css'))$('c_css').value=c.custom_css||'';
 }
 async function saveConfig(msgId){
   var m=$(msgId);m.style.color='';m.textContent='Saving…';
   var body={heading:$('c_heading').value.trim(),script:$('c_script').value.trim(),tagline:$('c_tagline').value.trim(),submit_label:$('c_submit').value.trim(),submit_note:$('c_note').value.trim(),event_types:$('c_types').value.split('\n').map(function(x){return x.trim();}).filter(Boolean),
-    custom_html:$('c_html')?$('c_html').value:'',custom_position:$('c_pos')?$('c_pos').value:'above'};
+    custom_css:$('c_css')?$('c_css').value:''};
   var d=await fetch('/api/inquiry-config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();});
   if(d.ok){m.style.color='var(--sage)';m.textContent='Saved ✓';$('formPv').src='/?t='+Date.now();loadConfig();}
   else{m.style.color='#B3542E';m.textContent=d.error||'Error';}
 }
 $('c_save').addEventListener('click',function(){saveConfig('c_msg');});
 if($('c_save2'))$('c_save2').addEventListener('click',function(){saveConfig('c_msg2');});
+if($('copyPrompt'))$('copyPrompt').addEventListener('click',function(){
+  var t=$('promptTxt').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(t);}
+  else{var a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();}
+  this.textContent='Copied ✓';var b=this;setTimeout(function(){b.textContent='Copy this prompt';},1600);
+});
 $('copyForm').addEventListener('click',function(){
   var url=location.origin+'/';
   if(navigator.clipboard){navigator.clipboard.writeText(url);}else{var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();}

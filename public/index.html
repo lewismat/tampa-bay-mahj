@@ -56,9 +56,6 @@
     font-size:clamp(1.4rem,4vw,2.1rem);color:var(--green);text-transform:uppercase;
   }
   .script{font-family:'Great Vibes',cursive;font-size:clamp(2.4rem,6vw,3.6rem);color:var(--green);line-height:1;margin-top:-4px}
-  .customblock{max-width:100%;margin:22px 0}
-  .customblock:empty{display:none}
-  .customblock img{max-width:100%;height:auto}
   .tagline{margin-top:14px;font-weight:300;letter-spacing:.14em;text-transform:uppercase;font-size:.82rem;color:var(--green-soft)}
   .tagline b{font-weight:500;color:var(--green)}
   .divider{display:flex;align-items:center;gap:14px;justify-content:center;margin:22px auto 0;max-width:420px}
@@ -182,7 +179,6 @@
     <div class="rack-count"><b id="rackCount">0</b> of 14 tiles — fill the form to declare Mahjong!</div>
   </div>
 
-  <div id="customAbove" class="customblock"></div>
   <form id="inquiryForm" novalidate>
     <fieldset>
       <legend><span class="tile num">壹</span> About You</legend>
@@ -257,7 +253,6 @@
       <p class="submit-note">Holly replies personally, usually within one business day.</p>
     </div>
   </form>
-  <div id="customBelow" class="customblock"></div>
 
   <div class="success" id="successBox">
     <div class="tile">🀄</div>
@@ -402,9 +397,9 @@
     function setTxt(sel,v){if(v){var el=document.querySelector(sel);if(el)el.textContent=v;}}
     setTxt('h1',c.heading); setTxt('.script',c.script); setTxt('.tagline',c.tagline); setTxt('.submit-note',c.submit_note);
     if(c.submit_label){var b=document.getElementById('submitBtn');if(b)b.textContent=c.submit_label;}
-    if(c.custom_html){
-      var host=document.getElementById(c.custom_position==='below'?'customBelow':'customAbove');
-      if(host)host.innerHTML=c.custom_html;
+    if(c.custom_css){
+      var st=document.getElementById('customCss')||document.createElement('style');
+      st.id='customCss'; st.textContent=c.custom_css; document.head.appendChild(st);
     }
     if(c.event_types&&c.event_types.length){var sel=document.getElementById('eventType');if(sel){sel.innerHTML='<option value="">Choose one…</option>'+c.event_types.map(function(t){return '<option>'+String(t).replace(/</g,'&lt;')+'</option>';}).join('')+'<option>Other</option>';}}
   }catch(e){}
