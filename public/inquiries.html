@@ -43,6 +43,21 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
       <label>Note under the button</label><input id="c_note" placeholder="Holly replies personally, usually within one business day.">
       <div><button class="save" id="c_save">Save form</button><span class="msg" id="c_msg"></span></div>
     </div>
+
+    <div class="panel">
+      <h2 style="font-family:var(--display);font-weight:600;font-size:1.15rem;margin:0 0 4px">&#10024; Add your own section</h2>
+      <p class="sub" style="margin:0 0 10px">Ask Claude for a block of HTML &mdash; a welcome note, a photo, pricing, testimonials, anything &mdash; then paste it below and it appears on your form.</p>
+      <label>Where should it go?</label>
+      <select id="c_pos"><option value="above">Above the form</option><option value="below">Below the form</option></select>
+      <label>Paste your HTML here</label>
+      <textarea id="c_html" rows="10" placeholder="&lt;h2&gt;Welcome!&lt;/h2&gt;&#10;&lt;p&gt;Tell me a little about your group and I&rsquo;ll be in touch.&lt;/p&gt;"></textarea>
+      <div class="hint">Scripts and embeds are stripped out automatically for safety &mdash; text, headings, images, links and styling all work. Leave it empty to remove the section.</div>
+      <div><button class="save" id="c_save2">Save section</button><span class="msg" id="c_msg2"></span></div>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;font-size:.85rem;color:var(--ink-soft)">What do I ask Claude for?</summary>
+        <p class="hint" style="margin-top:8px">Copy this: &ldquo;Write me a short block of HTML for my mahjong inquiry page. Cream and sage green, elegant Southern feel. Just the HTML, no explanation, and no &lt;script&gt; tags.&rdquo; Then paste whatever it gives you into the box above and hit Save section.</p>
+      </details>
+    </div>
   </div>
   <aside class="prev">
     <div class="pvlbl">✦ Live preview ✦</div>
@@ -60,13 +75,19 @@ async function loadConfig(){
   $('c_heading').value=c.heading||'';$('c_script').value=c.script||'';$('c_tagline').value=c.tagline||'';
   $('c_submit').value=c.submit_label||'';$('c_note').value=c.submit_note||'';
   $('c_types').value=(c.event_types||[]).join('\n');
+  if($('c_html'))$('c_html').value=c.custom_html||'';
+  if($('c_pos'))$('c_pos').value=c.custom_position||'above';
 }
-$('c_save').addEventListener('click',async function(){
-  var m=$('c_msg');m.style.color='';m.textContent='Saving…';
-  var body={heading:$('c_heading').value.trim(),script:$('c_script').value.trim(),tagline:$('c_tagline').value.trim(),submit_label:$('c_submit').value.trim(),submit_note:$('c_note').value.trim(),event_types:$('c_types').value.split('\n').map(function(x){return x.trim();}).filter(Boolean)};
+async function saveConfig(msgId){
+  var m=$(msgId);m.style.color='';m.textContent='Saving…';
+  var body={heading:$('c_heading').value.trim(),script:$('c_script').value.trim(),tagline:$('c_tagline').value.trim(),submit_label:$('c_submit').value.trim(),submit_note:$('c_note').value.trim(),event_types:$('c_types').value.split('\n').map(function(x){return x.trim();}).filter(Boolean),
+    custom_html:$('c_html')?$('c_html').value:'',custom_position:$('c_pos')?$('c_pos').value:'above'};
   var d=await fetch('/api/inquiry-config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();});
-  if(d.ok){m.style.color='var(--sage)';m.textContent='Saved ✓';$('formPv').src='/?t='+Date.now();}else{m.style.color='#B3542E';m.textContent=d.error||'Error';}
-});
+  if(d.ok){m.style.color='var(--sage)';m.textContent='Saved ✓';$('formPv').src='/?t='+Date.now();loadConfig();}
+  else{m.style.color='#B3542E';m.textContent=d.error||'Error';}
+}
+$('c_save').addEventListener('click',function(){saveConfig('c_msg');});
+if($('c_save2'))$('c_save2').addEventListener('click',function(){saveConfig('c_msg2');});
 $('copyForm').addEventListener('click',function(){
   var url=location.origin+'/';
   if(navigator.clipboard){navigator.clipboard.writeText(url);}else{var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();}
