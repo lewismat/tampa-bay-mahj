@@ -562,6 +562,11 @@ router.put('/api/inquiry-config', requireAuth, async (req, res) => {
       submit_label: clean(b.submit_label, 60), submit_note: clean(b.submit_note, 300),
       event_types: Array.isArray(b.event_types) ? b.event_types.slice(0, 40).map((t) => clean(t, 80)).filter(Boolean) : [],
       custom_css: sanitizeCSS(b.custom_css),
+      presets: Array.isArray(b.presets) ? b.presets.slice(0, 24).map((p) => ({
+        id: clean(p && p.id, 40) || String(Date.now()) + Math.random().toString(36).slice(2, 6),
+        name: clean(p && p.name, 60) || 'Untitled look',
+        css: sanitizeCSS(p && p.css),
+      })) : [],
     };
     await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' },
       body: JSON.stringify({ inquiry_config: cfg, updated_at: new Date().toISOString() }) });

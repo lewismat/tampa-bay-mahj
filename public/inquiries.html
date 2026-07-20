@@ -27,6 +27,18 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
 .copybtn:hover{filter:brightness(1.05)}
 .copymsg{text-align:center;font-size:.82rem;color:var(--sage);font-weight:700;min-height:1em;margin-bottom:6px}
 #formPv{width:100%;height:660px;border:1px solid var(--tile-edge);border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(59,72,50,.12)}
+  .namerow{display:flex;gap:8px;flex-wrap:wrap}
+  .namerow input{flex:1;min-width:160px}
+  .preset{display:flex;align-items:center;gap:8px;padding:9px 10px;margin-top:7px;
+    background:var(--tile);border:1px solid var(--tile-edge);border-radius:9px;font-size:.86rem}
+  .preset.on{border-color:var(--gold);background:#FBF6E4}
+  .preset .nm{flex:1;font-weight:500;color:var(--sage-dk)}
+  .preset .tag{font-size:.7rem;color:var(--gold-dk);text-transform:uppercase;letter-spacing:.08em}
+  .preset button{border:1px solid var(--tile-edge);background:var(--cream);border-radius:7px;
+    padding:5px 10px;font:inherit;font-size:.78rem;cursor:pointer;color:var(--sage-dk)}
+  .preset button:hover{border-color:var(--sage-soft)}
+  .preset button.rm{color:#B3542E}
+  .empty-p{font-size:.82rem;color:var(--ink-soft);margin-top:8px}
 </style></head>
 <body>
 <div class="wrap">
@@ -50,7 +62,17 @@ input:focus,textarea:focus{outline:2px solid var(--gold);border-color:var(--gold
       <label>Paste your CSS here</label>
       <textarea id="c_css" rows="12" placeholder="body{background:#FBF7E6;}"></textarea>
       <div class="hint">CSS only &mdash; no &lt;style&gt; tags needed. Scripts and remote imports are stripped automatically. Empty the box to go back to the standard look.</div>
-      <div><button class="save" id="c_save2">Save styling</button><span class="msg" id="c_msg2"></span></div>
+      <div><button class="save" id="c_save2">Use this look now</button><span class="msg" id="c_msg2"></span></div>
+
+      <div class="savedwrap">
+        <label style="margin-top:16px">Saved looks</label>
+        <div class="hint" style="margin-bottom:8px">Keep the ones you like and switch whenever you want.</div>
+        <div class="namerow">
+          <input id="c_preset_name" placeholder="Name this look, e.g. Spring garden">
+          <button class="save" id="c_preset_save">Save</button>
+        </div>
+        <div id="presetList"></div>
+      </div>
       <details style="margin-top:12px">
         <summary style="cursor:pointer;font-size:.85rem;color:var(--ink-soft)">What do I ask Claude for?</summary>
         <p class="hint" style="margin-top:8px">Copy this and paste it to Claude:</p>
@@ -71,6 +93,31 @@ Selectors I have: body, .wrap, .card, h1, .script, .tagline, .grid, .field, labe
 <script src="/sidebar.js"></script>
 <script>
 function $(id){return document.getElementById(id);}
+var PRESETS=[];
+function escp(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function renderPresets(){
+  var el=$('presetList'); if(!el) return;
+  var cur=$('c_css')?$('c_css').value.trim():'';
+  if(!PRESETS.length){el.innerHTML='<p class="empty-p">Nothing saved yet — paste some CSS above, then name it and hit Save.</p>';return;}
+  el.innerHTML=PRESETS.map(function(p){
+    var on=p.css.trim()===cur&&cur!=='';
+    return '<div class="preset'+(on?' on':'')+'">'+
+      '<span class="nm">'+escp(p.name)+'</span>'+
+      (on?'<span class="tag">In use</span>':'<button data-use="'+escp(p.id)+'">Use</button>')+
+      '<button class="rm" data-rm="'+escp(p.id)+'">Delete</button></div>';
+  }).join('');
+  el.querySelectorAll('[data-use]').forEach(function(b){b.onclick=function(){
+    var p=PRESETS.filter(function(x){return x.id===b.dataset.use;})[0];
+    if(!p)return; $('c_css').value=p.css; renderPresets(); saveConfig('c_msg2');
+  };});
+  el.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){
+    var p=PRESETS.filter(function(x){return x.id===b.dataset.rm;})[0];
+    if(!p||!confirm('Delete “'+p.name+'”? This does not change how your form looks right now.'))return;
+    PRESETS=PRESETS.filter(function(x){return x.id!==b.dataset.rm;});
+    renderPresets(); saveConfig('c_msg2');
+  };});
+}
 async function guard(){var s=await fetch('/api/auth/state').then(r=>r.json());if(!s.authed){location.href='/login';return false;}return true;}
 async function loadConfig(){
   var c=(await fetch('/api/inquiry-config').then(function(r){return r.json();})).config||{};
@@ -78,17 +125,29 @@ async function loadConfig(){
   $('c_submit').value=c.submit_label||'';$('c_note').value=c.submit_note||'';
   $('c_types').value=(c.event_types||[]).join('\n');
   if($('c_css'))$('c_css').value=c.custom_css||'';
+  PRESETS=Array.isArray(c.presets)?c.presets:[];
+  renderPresets();
 }
 async function saveConfig(msgId){
   var m=$(msgId);m.style.color='';m.textContent='Saving…';
   var body={heading:$('c_heading').value.trim(),script:$('c_script').value.trim(),tagline:$('c_tagline').value.trim(),submit_label:$('c_submit').value.trim(),submit_note:$('c_note').value.trim(),event_types:$('c_types').value.split('\n').map(function(x){return x.trim();}).filter(Boolean),
-    custom_css:$('c_css')?$('c_css').value:''};
+    custom_css:$('c_css')?$('c_css').value:'',presets:PRESETS};
   var d=await fetch('/api/inquiry-config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();});
   if(d.ok){m.style.color='var(--sage)';m.textContent='Saved ✓';$('formPv').src='/?t='+Date.now();loadConfig();}
   else{m.style.color='#B3542E';m.textContent=d.error||'Error';}
 }
 $('c_save').addEventListener('click',function(){saveConfig('c_msg');});
 if($('c_save2'))$('c_save2').addEventListener('click',function(){saveConfig('c_msg2');});
+if($('c_preset_save'))$('c_preset_save').addEventListener('click',function(){
+  var css=$('c_css').value.trim(), nm=$('c_preset_name').value.trim();
+  var m=$('c_msg2');
+  if(!css){m.style.color='#B3542E';m.textContent='Paste some CSS first';return;}
+  if(!nm){m.style.color='#B3542E';m.textContent='Give it a name';return;}
+  PRESETS.push({id:String(Date.now())+Math.random().toString(36).slice(2,6),name:nm,css:css});
+  $('c_preset_name').value='';
+  renderPresets(); saveConfig('c_msg2');
+});
+if($('c_css'))$('c_css').addEventListener('input',function(){renderPresets();});
 if($('copyPrompt'))$('copyPrompt').addEventListener('click',function(){
   var t=$('promptTxt').textContent;
   if(navigator.clipboard){navigator.clipboard.writeText(t);}
