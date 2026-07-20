@@ -165,4 +165,21 @@ function offerClaimed(offer, manageToken) {
   });
 }
 
-module.exports = { send, configured, bookingConfirmed, waitlistJoined, waitlistOffer, offerClaimed };
+// Internal alert to Holly. Uses Resend (already verified) rather than formsubmit,
+// which silently drops mail until the recipient clicks a one-time activation link.
+function ownerAlert(to, subject, fields) {
+  const rows = Object.entries(fields || {}).map(([k, v]) =>
+    `<tr><td style="padding:6px 14px 6px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#7A8A6B;white-space:nowrap;vertical-align:top;">${esc(k)}</td>` +
+    `<td style="padding:6px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#3B4832;">${esc(String(v))}</td></tr>`
+  ).join('');
+  return send({
+    to,
+    subject,
+    html: shell(
+      h1(subject) +
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 4px;">${rows}</table>`
+    ),
+  });
+}
+
+module.exports = { send, configured, ownerAlert, bookingConfirmed, waitlistJoined, waitlistOffer, offerClaimed };

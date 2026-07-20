@@ -73,6 +73,15 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel">
+    <h2>✉️ Email notifications</h2>
+    <div id="mailStatus"></div>
+    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">Where booking and inquiry alerts get sent. Guests always get their own confirmation automatically.</p>
+    <label>Send my alerts to</label>
+    <input id="notify_email" type="email" placeholder="hollymahj@outlook.com" autocomplete="email">
+    <div class="btnrow"><button class="save" id="ne_save">Save</button><span class="msg" id="ne_msg"></span></div>
+  </div>
+
+  <div class="panel">
     <h2>💳 Payments · Stripe</h2>
     <div id="stripeStatus"></div>
     <label>Stripe secret or restricted key</label>
@@ -118,6 +127,15 @@ async function loadStatus(){
   var tw=$('twStatus');
   if(s.twilioConnected){tw.innerHTML='<span class="status on">✓ Connected · texts from '+s.twilioFrom+'</span>';}
   else{tw.innerHTML='<span class="status off">Not connected yet</span>';}
+  var me=$('mailStatus');
+  if(me){
+    if(s.emailConfigured){me.innerHTML='<span class="status on">\u2713 Sending is live'+(s.emailFrom?' \u00b7 from '+s.emailFrom:'')+'</span>';}
+    else{me.innerHTML='<span class="status off">Email sending is not switched on \u2014 no confirmations are going out</span>';}
+  }
+  if($('notify_email')&&document.activeElement!==$('notify_email')){
+    $('notify_email').value=s.notifyEmail||'';
+    $('notify_email').placeholder=s.notifyDefault||'you@example.com';
+  }
   if($('cal_url'))$('cal_url').value=s.calendarUrl||'';
   if(s.googleClientId&&$('g_id'))$('g_id').value=s.googleClientId;
   if(s.msClientId&&$('m_id'))$('m_id').value=s.msClientId;
@@ -135,6 +153,9 @@ $('test').addEventListener('click',async function(){
   var d=await fetch('/api/settings/stripe/test',{method:'POST'}).then(r=>r.json());
   if(d.ok){msg.className='msg ok';msg.textContent='Works! '+(d.livemode?'(live mode)':'(test mode)');}
   else{msg.className='msg err';msg.textContent=d.error||'Could not connect';}
+});
+if($('ne_save'))$('ne_save').addEventListener('click',function(){
+  saveSettings({notify_email:$('notify_email').value.trim()},'ne_msg','Saved \u2713');
 });
 $('tbmLogout').addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST'}).then(function(){location.href='/login';});});
 // theme swatches

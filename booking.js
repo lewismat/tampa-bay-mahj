@@ -1,3 +1,31 @@
+async function ownerEmail() {
+  try {
+    const rows = await sb('settings?id=eq.app&select=notify_email&limit=1');
+    const v = rows && rows[0] && rows[0].notify_email;
+    if (v) return v;
+  } catch (e) { /* fall through to the env default */ }
+  return NOTIFY_EMAIL;
+}
+
+async function tellHolly(subject, fields) {
+  const to = await ownerEmail();
+  // Resend first: it is already verified for guest confirmations.
+  try {
+    const r = await mail.ownerAlert(to, subject, fields);
+    if (r && r.ok) return;
+  } catch (e) { console.error('[booking] owner alert via Resend:', e.message); }
+  // Fallback: formsubmit (needs a one-time activation click from the recipient).
+  try {
+    await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(to)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ _subject: subject, ...fields }),
+    });
+  } catch (e) {
+    console.error('[booking] Holly notification failed:', e.message);
+  }
+}
+
 /**
  * booking.js — Tampa Bay Mahj booking + waitlist
  *

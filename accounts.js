@@ -335,6 +335,10 @@ router.get('/api/settings', requireAuth, async (req, res) => {
     const proto = req.get('x-forwarded-proto') || 'https';
     const base = proto + '://' + req.get('host');
     res.json({ ok: true,
+      notifyEmail: s.notify_email || '',
+      notifyDefault: process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com',
+      emailConfigured: mail.configured(),
+      emailFrom: process.env.FROM_EMAIL || '',
       stripeConnected: !!k, stripeHint: k ? ('•••• ' + k.slice(-4)) : '', mode: k.startsWith('rk_') ? 'restricted' : (k.startsWith('sk_') ? 'secret' : ''),
       twilioConnected: !!(s.twilio_account_sid && s.twilio_auth_token && s.twilio_from), twilioFrom: s.twilio_from || '',
       twilioSidHint: s.twilio_account_sid ? ('•••• ' + String(s.twilio_account_sid).slice(-4)) : '',
@@ -347,6 +351,13 @@ router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
   try {
     const b = req.body || {};
     const patch = { updated_at: new Date().toISOString() };
+    if ('notify_email' in b) {
+      const v = clean(b.notify_email, 160);
+      if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+        return res.status(400).json({ error: 'That email address does not look right.' });
+      }
+      patch.notify_email = v || null;
+    }
     if ('stripe_secret_key' in b) {
       const key = clean(b.stripe_secret_key, 220);
       if (key && !/^(sk|rk)_/.test(key)) return res.status(400).json({ ok: false, error: 'Stripe key should start with sk_ or rk_.' });
