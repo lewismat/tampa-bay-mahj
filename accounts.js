@@ -337,8 +337,9 @@ router.get('/api/settings', requireAuth, async (req, res) => {
     res.json({ ok: true,
       notifyEmail: s.notify_email || '',
       notifyDefault: process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com',
-      emailConfigured: mail.configured(),
-      emailFrom: process.env.FROM_EMAIL || '',
+      emailConfigured: await mail.configured(),
+      resendHint: s.resend_api_key ? ('•••• ' + String(s.resend_api_key).slice(-4)) : '',
+      emailFrom: process.env.FROM_EMAIL || s.from_email || '',
       stripeConnected: !!k, stripeHint: k ? ('•••• ' + k.slice(-4)) : '', mode: k.startsWith('rk_') ? 'restricted' : (k.startsWith('sk_') ? 'secret' : ''),
       twilioConnected: !!(s.twilio_account_sid && s.twilio_auth_token && s.twilio_from), twilioFrom: s.twilio_from || '',
       twilioSidHint: s.twilio_account_sid ? ('•••• ' + String(s.twilio_account_sid).slice(-4)) : '',
@@ -351,6 +352,18 @@ router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
   try {
     const b = req.body || {};
     const patch = { updated_at: new Date().toISOString() };
+    if ('resend_api_key' in b) {
+      const key = clean(b.resend_api_key, 220);
+      if (key && !/^re_/.test(key)) return res.status(400).json({ error: 'A Resend API key starts with re_' });
+      patch.resend_api_key = key || null;
+    }
+    if ('from_email' in b) {
+      const v = clean(b.from_email, 200);
+      if (v && !/<[^\s@]+@[^\s@]+\.[^\s@]+>|^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+        return res.status(400).json({ error: 'Use an address like holly@yourdomain.com, or Name <holly@yourdomain.com>' });
+      }
+      patch.from_email = v || null;
+    }
     if ('notify_email' in b) {
       const v = clean(b.notify_email, 160);
       if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
@@ -367,6 +380,7 @@ router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
       if (f in b) patch[f] = clean(b[f], 300) || null;
     });
     await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
+    mail.clearCache();
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
@@ -411,6 +425,22 @@ router.get('/api/cal/:file', async (req, res) => {
     res.send(ics);
   } catch (e) { res.status(500).send('error'); }
 });
+// Sends a real email to the alert address so Holly can confirm delivery end to end.
+router.post('/api/settings/email/test', requireAuth, async (req, res) => {
+  try {
+    const rows = await sb('settings?id=eq.app&select=notify_email&limit=1').catch(() => []);
+    const to = (rows && rows[0] && rows[0].notify_email) || process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com';
+    const out = await mail.ownerAlert(to, 'Test email from Tampa Bay Mahj', {
+      Status: 'Email delivery is working.',
+      'Sent to': to,
+      When: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+    });
+    if (out && out.ok) return res.json({ ok: true, to });
+    if (out && out.skipped) return res.status(400).json({ ok: false, error: out.reason });
+    return res.status(400).json({ ok: false, error: (out && out.error) || 'Could not send.' });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 router.post('/api/settings/stripe/test', requireAuth, async (req, res) => {
   try {
     const key = await getStripeKey();

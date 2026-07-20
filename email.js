@@ -12,13 +12,35 @@
  * Callers fall back to notifying Holly so nothing is silently lost.
  */
 
-const API_KEY = process.env.RESEND_API_KEY;
-const FROM = process.env.FROM_EMAIL;
-const REPLY_TO = process.env.REPLY_TO || process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com';
+const SB_URL = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const SB_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || '';
+
+// Credentials live in the settings table so Holly can manage them in the app.
+// Env vars still win if present, so existing deploys keep working.
+let _cache = { at: 0, val: null };
+async function cfg() {
+  if (_cache.val && Date.now() - _cache.at < 30000) return _cache.val;
+  let row = {};
+  if (SB_URL && SB_KEY) {
+    try {
+      const r = await fetch(`${SB_URL}/rest/v1/settings?id=eq.app&select=resend_api_key,from_email,notify_email&limit=1`,
+        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } });
+      if (r.ok) row = (await r.json())[0] || {};
+    } catch (e) { /* fall back to env */ }
+  }
+  const val = {
+    key: process.env.RESEND_API_KEY || row.resend_api_key || '',
+    from: process.env.FROM_EMAIL || row.from_email || '',
+    replyTo: process.env.REPLY_TO || row.notify_email || process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com',
+  };
+  _cache = { at: Date.now(), val };
+  return val;
+}
+function clearCache() { _cache = { at: 0, val: null }; }
 const SITE_URL = (process.env.SITE_URL || 'https://tampa-bay-mahj.onrender.com').replace(/\/$/, '');
 const TZ = 'America/New_York';
 
-const configured = () => Boolean(API_KEY && FROM);
+async function configured() { const c = await cfg(); return Boolean(c.key && c.from); }
 
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -42,12 +64,13 @@ const deadline = (d) =>
   }).format(new Date(d));
 
 async function send({ to, subject, html }) {
-  if (!configured()) return { skipped: true, reason: 'RESEND_API_KEY or FROM_EMAIL not set' };
+  const c = await cfg();
+  if (!c.key || !c.from) return { skipped: true, reason: 'Email sending is not set up yet (missing API key or from address).' };
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: [to], reply_to: REPLY_TO, subject, html }),
+      headers: { Authorization: `Bearer ${c.key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: c.from, to: [to], reply_to: c.replyTo, subject, html }),
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -182,4 +205,4 @@ function ownerAlert(to, subject, fields) {
   });
 }
 
-module.exports = { send, configured, ownerAlert, bookingConfirmed, waitlistJoined, waitlistOffer, offerClaimed };
+module.exports = { send, configured, clearCache, ownerAlert, bookingConfirmed, waitlistJoined, waitlistOffer, offerClaimed };

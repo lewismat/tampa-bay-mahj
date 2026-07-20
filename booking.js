@@ -58,9 +58,9 @@ const OFFER_HOURS = parseInt(process.env.OFFER_HOURS, 10) || 24;
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.warn('[booking] SUPABASE_URL / SUPABASE_KEY not found — booking routes will error.');
 }
-if (!mail.configured()) {
-  console.warn('[booking] Resend not configured — clients will not be emailed. Holly still gets notified.');
-}
+mail.configured().then((ok) => {
+  if (!ok) console.warn('[booking] Email not configured — clients will not be emailed. Set it up in Settings.');
+}).catch(() => {});
 
 router.use(express.json());
 
