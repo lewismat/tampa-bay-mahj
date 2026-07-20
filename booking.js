@@ -82,6 +82,43 @@ const fmt = (d) => new Date(d).toLocaleString('en-US', {
 });
 
 // Holly's notifications keep going through FormSubmit — already working, already activated.
+/* ---------------- Stripe (paid bookings) ---------------- */
+async function getStripeKey() {
+  try {
+    const rows = await sb('settings?id=eq.app&select=stripe_secret_key&limit=1');
+    return (rows && rows[0] && rows[0].stripe_secret_key) || '';
+  } catch (e) { return ''; }
+}
+async function stripePost(key, pathq, params) {
+  const r = await fetch('https://api.stripe.com/v1/' + pathq, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(params).toString(),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((j.error && j.error.message) || ('Stripe ' + r.status));
+  return j;
+}
+async function stripeGetJSON(key, pathq) {
+  const r = await fetch('https://api.stripe.com/v1/' + pathq, { headers: { Authorization: 'Bearer ' + key } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((j.error && j.error.message) || ('Stripe ' + r.status));
+  return j;
+}
+// Release seats held by checkouts that were never paid. Lazy — runs when the calendar loads.
+async function sweepPendingHolds() {
+  try {
+    const stale = await sb(`pending_bookings?select=*&status=eq.pending&expires_at=lt.${new Date().toISOString()}`);
+    for (const p of (stale || [])) {
+      await sb(`pending_bookings?id=eq.${p.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'expired' }) }).catch(() => {});
+      const [sl] = await sb(`slots?select=seats_held&id=eq.${p.slot_id}`).catch(() => []);
+      if (sl) await sb(`slots?id=eq.${p.slot_id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ seats_held: Math.max(0, (sl.seats_held || 0) - p.seats) }) }).catch(() => {});
+    }
+  } catch (e) { console.error('[booking] sweepPendingHolds:', e.message); }
+}
+
 // A booking (or claimed waitlist seat) makes them a real student, tagged with the event.
 async function upsertStudentFromBooking(person, slot) {
   try {
@@ -173,8 +210,9 @@ function maybeSweep() {
 router.get('/api/slots', async (req, res) => {
   try {
     maybeSweep();
+    sweepPendingHolds();
     const rows = await sb(
-      `slots?select=id,slot_type,starts_at,duration_minutes,location,seats_total,seats_taken,seats_held,price_note,notes,waitlist(status)` +
+      `slots?select=id,slot_type,starts_at,duration_minutes,location,seats_total,seats_taken,seats_held,price_note,price_cents,title,notes,waitlist(status)` +
       `&published=eq.true&starts_at=gte.${new Date().toISOString()}&order=starts_at.asc`
     );
     res.json(rows.map((s) => {
@@ -206,7 +244,36 @@ function validate(p, slot_id) {
   return null;
 }
 
-// Book a seat.
+// Turn an approved (free or paid) request into a real seat + notifications.
+async function finalizeBooking(slot_id, seats, payload, paidCents) {
+  const result = await sb('rpc/book_slot', {
+    method: 'POST',
+    body: JSON.stringify({ p_slot_id: slot_id, p_seats: seats, p_booking: payload }),
+  });
+  if (!result?.ok) return { ok: false, error: result?.error || 'That time just filled up.' };
+
+  const [slot] = await sb(`slots?select=*&id=eq.${slot_id}`);
+  upsertStudentFromBooking(payload, slot);
+
+  mail.bookingConfirmed({ ...payload, seats }, slot, result.manage_token);
+  if (payload.phone) sms.sendSMS(payload.phone, `You're booked with Tampa Bay Mahj \u2014 ${slot.title || TYPE_LABEL[slot.slot_type]} on ${fmt(slot.starts_at)}. Manage: ${SITE_URL}/booking/${result.manage_token}`).catch(() => {});
+  tellHolly(`New booking — ${slot.title || TYPE_LABEL[slot.slot_type]} — ${fmt(slot.starts_at)}`, {
+    Name: `${payload.first_name} ${payload.last_name}`,
+    Email: payload.email,
+    Phone: payload.phone || '—',
+    When: fmt(slot.starts_at),
+    Seats: seats,
+    Paid: paidCents ? '$' + (paidCents / 100).toFixed(2) : 'Free event',
+    Where: slot.location || payload.street_address || '—',
+    Address: [payload.street_address, payload.city, payload.state, payload.zip].filter(Boolean).join(', ') || '—',
+    Expecting: payload.headcount || '—',
+    Notes: payload.notes || '—',
+    Schedule: `${SITE_URL}/schedule`,
+  });
+  return { ok: true, manage_token: result.manage_token };
+}
+
+// Book a seat. Paid events detour through Stripe Checkout before the seat is real.
 router.post('/api/book', async (req, res) => {
   try {
     const b = req.body || {};
@@ -224,34 +291,130 @@ router.post('/api/book', async (req, res) => {
       headcount: clean(String(b.headcount ?? ''), 10),
     };
 
-    const result = await sb('rpc/book_slot', {
-      method: 'POST',
-      body: JSON.stringify({ p_slot_id: b.slot_id, p_seats: seats, p_booking: payload }),
-    });
-    if (!result?.ok) return res.status(409).json({ error: result?.error || 'That time just filled up.' });
-
     const [slot] = await sb(`slots?select=*&id=eq.${b.slot_id}`);
-    upsertStudentFromBooking(payload, slot);
+    if (!slot) return res.status(404).json({ error: 'That event is no longer on the calendar.' });
 
-    mail.bookingConfirmed({ ...payload, seats }, slot, result.manage_token);
-    if (payload.phone) sms.sendSMS(payload.phone, `You're booked with Tampa Bay Mahj \u2014 ${TYPE_LABEL[slot.slot_type]} on ${fmt(slot.starts_at)}. Manage: ${SITE_URL}/booking/${result.manage_token}`).catch(() => {});
-    tellHolly(`New booking — ${TYPE_LABEL[slot.slot_type]} — ${fmt(slot.starts_at)}`, {
-      Name: `${payload.first_name} ${payload.last_name}`,
-      Email: payload.email,
-      Phone: payload.phone || '—',
-      When: fmt(slot.starts_at),
-      Seats: seats,
-      Where: slot.location || payload.street_address || '—',
-      Address: [payload.street_address, payload.city, payload.state, payload.zip].filter(Boolean).join(', ') || '—',
-      Expecting: payload.headcount || '—',
-      Notes: payload.notes || '—',
-      Schedule: `${SITE_URL}/schedule`,
+    const price = Math.max(0, parseInt(slot.price_cents, 10) || 0);
+
+    /* ---- Free event: book straight away ---- */
+    if (!price) {
+      const out = await finalizeBooking(b.slot_id, seats, payload, 0);
+      if (!out.ok) return res.status(409).json({ error: out.error });
+      return res.json({ ok: true, manage_url: `${SITE_URL}/booking/${out.manage_token}` });
+    }
+
+    /* ---- Paid event: hold the seat, send them to Stripe ---- */
+    const key = await getStripeKey();
+    if (!key) return res.status(503).json({ error: 'Payment is not set up yet for this event. Please text Holly to reserve.' });
+    if (seats > free(slot)) return res.status(409).json({ error: 'That time just filled up.' });
+
+    // Hold the seat(s) so nobody else takes them while this person checks out.
+    await sb(`slots?id=eq.${slot.id}`, {
+      method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ seats_held: (slot.seats_held || 0) + seats }),
     });
 
-    res.json({ ok: true, manage_url: `${SITE_URL}/booking/${result.manage_token}` });
+    let pend;
+    try {
+      const rows = await sb('pending_bookings', {
+        method: 'POST', headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ slot_id: slot.id, seats, payload }),
+      });
+      pend = rows[0];
+
+      const label = slot.title || TYPE_LABEL[slot.slot_type] || 'Mahjong with Tampa Bay Mahj';
+      const session = await stripePost(key, 'checkout/sessions', {
+        mode: 'payment',
+        'line_items[0][price_data][currency]': 'usd',
+        'line_items[0][price_data][unit_amount]': String(price),
+        'line_items[0][price_data][product_data][name]': `${label} — ${fmt(slot.starts_at)}`,
+        'line_items[0][quantity]': String(seats),
+        customer_email: payload.email,
+        client_reference_id: pend.id,
+        'metadata[pending_id]': pend.id,
+        success_url: `${SITE_URL}/api/book/complete?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${SITE_URL}/book?payment=cancelled`,
+      });
+
+      await sb(`pending_bookings?id=eq.${pend.id}`, {
+        method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ session_id: session.id }),
+      });
+      return res.json({ ok: true, checkout_url: session.url });
+    } catch (err) {
+      // Checkout never opened — give the seat back immediately.
+      const [cur] = await sb(`slots?select=seats_held&id=eq.${slot.id}`).catch(() => []);
+      if (cur) await sb(`slots?id=eq.${slot.id}`, {
+        method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ seats_held: Math.max(0, (cur.seats_held || 0) - seats) }),
+      }).catch(() => {});
+      if (pend) await sb(`pending_bookings?id=eq.${pend.id}`, {
+        method: 'PATCH', headers: { Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'expired' }),
+      }).catch(() => {});
+      console.error('[booking] checkout:', err.message);
+      return res.status(502).json({ error: 'We could not open the payment page. Please try again in a moment.' });
+    }
   } catch (e) {
     console.error('[booking] /api/book', e.message);
     res.status(500).json({ error: 'Something went wrong saving that. Please try again.' });
+  }
+});
+
+// Stripe sends them back here after paying. Verify with Stripe, then make the seat real.
+router.get('/api/book/complete', async (req, res) => {
+  const back = (msg) => res.redirect('/book?payment=' + encodeURIComponent(msg));
+  try {
+    const sid = String(req.query.session_id || '');
+    if (!sid) return back('missing');
+
+    const key = await getStripeKey();
+    if (!key) return back('unconfigured');
+
+    const session = await stripeGetJSON(key, 'checkout/sessions/' + encodeURIComponent(sid));
+    if (session.payment_status !== 'paid') return back('unpaid');
+
+    const rows = await sb(`pending_bookings?select=*&session_id=eq.${encodeURIComponent(sid)}&limit=1`);
+    const pend = rows && rows[0];
+    if (!pend) return back('missing');
+
+    // Already finished (e.g. they refreshed the receipt page) — don't double-book.
+    if (pend.status === 'paid') {
+      return res.redirect(pend.manage_token ? `/booking/${pend.manage_token}?paid=1` : '/book?payment=done');
+    }
+
+    // Release the hold first so book_slot sees the seat as available.
+    const [cur] = await sb(`slots?select=seats_held&id=eq.${pend.slot_id}`).catch(() => []);
+    if (cur) await sb(`slots?id=eq.${pend.slot_id}`, {
+      method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ seats_held: Math.max(0, (cur.seats_held || 0) - pend.seats) }),
+    }).catch(() => {});
+
+    const paidCents = session.amount_total || 0;
+    const out = await finalizeBooking(pend.slot_id, pend.seats, pend.payload, paidCents);
+
+    await sb(`pending_bookings?id=eq.${pend.id}`, {
+      method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'paid', manage_token: out.manage_token || null }),
+    }).catch(() => {});
+
+    if (!out.ok) {
+      // Paid, but the seat vanished. Never silently swallow this.
+      tellHolly('ACTION NEEDED — paid but no seat', {
+        Name: `${pend.payload.first_name} ${pend.payload.last_name}`,
+        Email: pend.payload.email,
+        Phone: pend.payload.phone || '—',
+        Paid: '$' + (paidCents / 100).toFixed(2),
+        Problem: out.error,
+        'Stripe session': sid,
+        'What to do': 'Refund in Stripe or fit them in, then reply to them directly.',
+      });
+      return back('oversold');
+    }
+    return res.redirect(`/booking/${out.manage_token}?paid=1`);
+  } catch (e) {
+    console.error('[booking] /api/book/complete', e.message);
+    return back('error');
   }
 });
 
@@ -465,6 +628,7 @@ router.post('/api/admin/slots', auth.requireAuth, async (req, res) => {
       body: JSON.stringify({
         slot_type: b.slot_type,
         title: clean(b.title, 120) || null,
+        price_cents: Math.max(0, Math.min(500000, parseInt(b.price_cents, 10) || 0)),
         starts_at: new Date(b.starts_at).toISOString(),
         duration_minutes: Math.min(600, Math.max(15, parseInt(b.duration_minutes, 10) || 120)),
         location: clean(b.location, 200) || null,

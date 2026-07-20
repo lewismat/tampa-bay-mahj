@@ -112,7 +112,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
       <div class="field"><label for="dur">Length (minutes)</label><input id="dur" type="number" value="120" step="15" min="15"></div>
       <div class="field" id="seatfield" hidden><label for="seats">Seats</label><input id="seats" type="number" min="1" max="40" value="8" step="1"><div style="font-size:.72rem;color:var(--ink-soft);margin-top:3px">Total spots — e.g. 8 at one table, 16 at two.</div></div>
       <div class="field"><label for="loc">Where</label><input id="loc" placeholder="e.g. Carrollwood Country Club"></div>
-      <div class="field"><label for="price">Price note</label><input id="price" placeholder="e.g. $75 per person"></div>
+      <div class="field"><label for="amt">Price per seat ($)</label><input id="amt" type="number" min="0" step="1" placeholder="0"><div class="hint">Leave blank or 0 for a free event. Any amount here means guests must pay before their seat is confirmed.</div></div>
+      <div class="field"><label for="price">Price note</label><input id="price" placeholder="e.g. includes cards &amp; tiles"></div>
     </div>
     <div class="field" style="margin-top:12px"><label for="notes">Note shown to clients</label>
       <textarea id="notes" rows="2" placeholder="e.g. Beginners welcome — cards and tiles provided."></textarea></div>
@@ -194,7 +195,7 @@ async function load(){
           <div>
             <div class="when">${fmt(s.starts_at)}</div>
             <div class="meta">${s.title?esc(s.title)+' · ':''}${LABEL[s.slot_type]} · ${s.duration_minutes} min${
-              s.location?' · '+esc(s.location):''}${s.price_note?' · '+esc(s.price_note):''}</div>
+              s.location?' · '+esc(s.location):''}${s.price_cents?' · $'+(s.price_cents/100).toFixed(2)+' per seat':''}${s.price_note?' · '+esc(s.price_note):''}</div>
             <div class="meta" style="margin-top:6px">
               <span class="pill ${full?'full':''}">${
                 s.slot_type==='group_class'
@@ -260,10 +261,10 @@ document.getElementById('add').onclick=async()=>{
       .formatToParts(local).find(p=>p.type==='timeZoneName').value.replace('GMT','')||'-04:00';
     const r=await fetch('/api/admin/slots',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({slot_type:v('type'),title:v('title'),starts_at:`${v('date')}T${v('time')}:00${offset}`,
-        duration_minutes:v('dur'),seats_total:v('seats'),location:v('loc'),price_note:v('price'),notes:v('notes')})});
+        duration_minutes:v('dur'),seats_total:v('seats'),location:v('loc'),price_note:v('price'),price_cents:Math.round((parseFloat(v('amt'))||0)*100),notes:v('notes')})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Could not open that date.');
-    ['loc','price','notes'].forEach(id=>document.getElementById(id).value='');
+    ['loc','price','amt','notes'].forEach(id=>document.getElementById(id).value='');
     load();refreshPreview();
   }catch(e){ err.textContent=e.message; }
   btn.disabled=false;btn.textContent='Open this date';

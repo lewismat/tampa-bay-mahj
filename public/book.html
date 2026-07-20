@@ -137,6 +137,15 @@ h1{font-family:var(--display);font-weight:600;font-size:clamp(2rem,5vw,3rem);mar
 .slot .what{font-size:.82rem;color:var(--ink-soft);margin-top:3px}
 .slot .right{text-align:right;flex:0 0 auto}
 .price{font-family:var(--display);font-size:1.05rem;font-weight:600;color:var(--sage-dk)}
+.price .pp{font-family:var(--body);font-size:.72rem;font-weight:400;color:var(--sage-soft)}
+.pricenote{font-size:.72rem;color:var(--sage-soft);margin-top:2px}
+.paynote{background:linear-gradient(180deg,#FFFBF0,#F7EFD9);border:1px solid var(--gold-soft);
+  border-left:3px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:14px;
+  font-size:.86rem;color:var(--sage-dk);line-height:1.5}
+.paynote .amt{font-family:var(--display);font-size:1.15rem;font-weight:600;display:block;margin-bottom:2px}
+.paynote .sec{display:block;margin-top:6px;font-size:.74rem;color:var(--sage-soft)}
+.flash{max-width:980px;margin:0 auto 18px;padding:12px 16px;border-radius:12px;font-size:.88rem;
+  background:#FBEEE6;border:1px solid #E2BFA9;color:#8C3F1E}
 
 /* table seat map */
 .tablemap{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:5px}
@@ -211,6 +220,7 @@ textarea{resize:vertical;min-height:78px}
     <h1>Reserve a table</h1>
     <p class="sub">Pick a face-up tile — those are the days Holly is free.</p>
   </header>
+  <div class="flash" id="flash" style="display:none"></div>
 
 
   <div class="monthbar">
@@ -243,7 +253,26 @@ const longDate=d=>new Intl.DateTimeFormat('en-US',{timeZone:TZ,weekday:'long',mo
 
 let SLOTS=[],filter='all',cursor=new Date(),selDay=null,selSlot=null;
 
+const PAYMSG={
+  cancelled:'Payment cancelled — no charge was made and your seat was released. You can pick a time again below.',
+  unpaid:'That payment did not complete, so no seat was reserved. Nothing was charged.',
+  missing:'We could not match that checkout to a reservation. If you were charged, email Holly and she will sort it out right away.',
+  oversold:'Your payment went through but that seat was taken in the meantime. Holly has been alerted and will contact you today to rebook or refund you.',
+  unconfigured:'Online payment is not switched on for this event yet. Please text Holly to reserve.',
+  error:'Something went wrong finishing that reservation. If you were charged, email Holly — she has been alerted.',
+  done:'That reservation is already confirmed.'
+};
+function showFlash(){
+  const code=new URLSearchParams(location.search).get('payment');
+  if(!code) return;
+  const el=document.getElementById('flash');
+  el.textContent=PAYMSG[code]||PAYMSG.error;
+  el.style.display='block';
+  history.replaceState(null,'',location.pathname);
+}
+
 async function load(){
+  showFlash();
   const wall=document.getElementById('wall');
   try{
     const r=await fetch('/api/slots');
@@ -351,7 +380,7 @@ function renderPanel(map){
             s.location?' · '+esc(s.location):''}</span>
         </span>
         <span class="right">
-          ${s.price_note?`<div class="price">${esc(s.price_note)}</div>`:''}
+          ${s.price_cents?`<div class="price">$${(s.price_cents/100).toFixed(2)}<span class="pp"> / seat</span></div>`:''}${s.price_note?`<div class="pricenote">${esc(s.price_note)}</div>`:''}
           ${s.seats_left?seatMap(s):`<div class="seatsleft">${
             s.waiting?`${s.waiting} waiting · join the list`:'Join the waitlist'}</div>`}
         </span>
@@ -378,6 +407,11 @@ function renderForm(s){
     ${waiting?`<div class="waitnote"><strong>This one is full.</strong> Get on the list and if
       someone cancels we will email you and hold the seat for 24 hours — first come, first
       served down the line.${s.waiting?` ${s.waiting} ${s.waiting===1?'person is':'people are'} ahead of you.`:''}</div>`:''}
+    ${(!waiting&&s.price_cents)?`<div class="paynote">
+      <span class="amt">$${(s.price_cents/100).toFixed(2)} per seat</span>
+      Payment is required to hold your seat. Choosing your details below takes you to a secure
+      Stripe checkout — your spot is confirmed the moment the payment goes through.
+      <span class="sec" id="totline"></span></div>`:''}
     <div class="grid">
       <div class="field"><label for="fn">First name <span style="color:#B3542E">*</span></label><input id="fn" autocomplete="given-name"></div>
       <div class="field"><label for="ln">Last name <span style="color:#B3542E">*</span></label><input id="ln" autocomplete="family-name"></div>
@@ -396,9 +430,16 @@ function renderForm(s){
     </div>
     <button class="cta" id="go">${waiting
       ? `Add me to the list for ${time(s.starts_at)}`
-      : `Reserve ${time(s.starts_at)} on ${day}`}</button>
+      : (s.price_cents ? `Pay &amp; reserve ${time(s.starts_at)} on ${day}`
+                       : `Reserve ${time(s.starts_at)} on ${day}`)}</button>
     <p class="err" id="err" role="alert"></p>
   </div>`;
+  if(!waiting&&s.price_cents){
+    const seatSel=document.getElementById('seats'),tot=document.getElementById('totline');
+    const showTotal=()=>{const n=parseInt(seatSel?.value,10)||1;
+      tot.textContent=`Total today: $${((s.price_cents*n)/100).toFixed(2)}${n>1?` (${n} seats)`:''}`;};
+    showTotal(); if(seatSel) seatSel.addEventListener('change',showTotal);
+  }
   document.getElementById('go').onclick=()=>submit(s);
 }
 
@@ -410,7 +451,8 @@ async function submit(s){
   if(!v('fn')||!v('ln')) return err.textContent='Add your first and last name.';
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('em'))) return err.textContent='That email address does not look right.';
   if(v('ph').replace(/[^0-9]/g,'').length<10) return err.textContent='Add a phone number so Holly can reach you.';
-  btn.disabled=true;btn.textContent=waiting?'Adding you…':'Reserving…';
+  const paid=!waiting&&s.price_cents>0;
+  btn.disabled=true;btn.textContent=waiting?'Adding you…':(paid?'Taking you to checkout…':'Reserving…');
   try{
     const r=await fetch(waiting?'/api/waitlist':'/api/book',
       {method:'POST',headers:{'Content-Type':'application/json'},
@@ -419,6 +461,7 @@ async function submit(s){
         zip:v('zip'),headcount:v('head'),notes:v('notes')})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error||'That did not go through.');
+    if(d.checkout_url){ window.location.href=d.checkout_url; return; }
     waiting?onList(s,d):confirmed(s,d);
   }catch(e){
     err.textContent=e.message;
