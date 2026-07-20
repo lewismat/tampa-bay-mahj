@@ -648,6 +648,9 @@ router.patch('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
   try {
     const patch = {};
     if ('published' in req.body) patch.published = !!req.body.published;
+    if ('price_cents' in req.body) patch.price_cents = Math.max(0, Math.min(500000, parseInt(req.body.price_cents, 10) || 0));
+    if ('price_note' in req.body) patch.price_note = clean(req.body.price_note, 120) || null;
+    if ('title' in req.body) patch.title = clean(req.body.title, 120) || null;
     if ('seats_total' in req.body) {
       const [cur] = await sb(`slots?select=seats_taken,seats_held&id=eq.${encodeURIComponent(req.params.id)}`);
       const want = Math.min(40, Math.max(1, parseInt(req.body.seats_total, 10) || 1));

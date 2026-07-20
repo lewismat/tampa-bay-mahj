@@ -81,6 +81,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
 .atbl .an{font-family:var(--display);font-weight:700;color:var(--sage-dk,#3B4832);font-size:1rem}
 .atbl .am{color:var(--ink-soft,#5D6656)}
 .attsearch{width:100%;padding:10px 12px;border:1px solid var(--tile-edge);border-radius:9px;margin-bottom:12px;font-family:'Karla',sans-serif;font-size:.9rem}
+  .priceset{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--sage-dk)}
+  .priceinp{width:62px;padding:4px 6px;border:1px solid var(--tile-edge);border-radius:7px;
+    font:inherit;font-size:.8rem;background:var(--tile);color:var(--sage-dk)}
+  .paidflag{background:var(--gold-soft);color:var(--gold-dk);border-color:var(--gold)}
 </style>
 <script src="/theme.js"></script>
 </head>
@@ -203,10 +207,15 @@ async function load(){
                   : (full?'Booked':'Open')}</span>
               ${s.seats_held?`<span class="pill hold">${s.seats_held} held</span>`:''}
               ${line.length?`<span class="pill wait">${line.length} waiting</span>`:''}
+              ${s.price_cents?`<span class="pill paidflag">Payment required · $${(s.price_cents/100).toFixed(2)}</span>`
+                             :'<span class="pill">Free · books instantly</span>'}
               ${s.published?'':'<span class="pill">Hidden</span>'}
             </div>
           </div>
           <div class="btns">
+            <span class="priceset">$<input class="priceinp" type="number" min="0" step="1"
+              value="${s.price_cents?(s.price_cents/100):''}" placeholder="0" data-price="${s.id}"
+              title="Price per seat — 0 or blank means free"><button class="mini" data-savep="${s.id}">Save price</button></span>
             <button class="mini" data-pub="${s.id}" data-val="${!s.published}">${s.published?'Hide':'Show'}</button>
             <button class="mini danger" data-del="${s.id}">Remove</button>
           </div>
@@ -236,6 +245,15 @@ async function load(){
     el.querySelectorAll('[data-pub]').forEach(b=>b.onclick=async()=>{
       await fetch('/api/admin/slots/'+b.dataset.pub,{method:'PATCH',
         headers:{'Content-Type':'application/json'},body:JSON.stringify({published:b.dataset.val==='true'})});
+      load();refreshPreview();
+    });
+    el.querySelectorAll('[data-savep]').forEach(b=>b.onclick=async()=>{
+      const inp=el.querySelector('[data-price="'+b.dataset.savep+'"]');
+      const cents=Math.round((parseFloat(inp.value)||0)*100);
+      b.disabled=true;b.textContent='Saving…';
+      const r=await fetch('/api/admin/slots/'+b.dataset.savep,{method:'PATCH',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({price_cents:cents})});
+      if(!r.ok){ const d=await r.json().catch(()=>({})); alert(d.error||'Could not save that price.'); }
       load();refreshPreview();
     });
     el.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
