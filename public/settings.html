@@ -37,6 +37,12 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
 .swatch .chips{display:flex;gap:5px;margin-bottom:8px}
 .swatch .chips i{width:20px;height:20px;border-radius:50%;display:block}
 .swatch .nm{font-weight:700;font-size:.86rem;color:var(--sage-dk)}
+.invrow{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#fff;border:1px solid var(--tile-edge);border-radius:10px;margin-bottom:7px;flex-wrap:wrap}
+.invcode{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:1rem;color:var(--sage-dk);letter-spacing:.08em}
+.invchip{font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 9px;border-radius:12px}
+.invchip.open{background:rgba(63,125,78,.14);color:var(--green-ok)}
+.invchip.used{background:var(--cream-2);color:var(--ink-soft)}
+.invcopy{margin-left:auto;padding:7px 13px;border:1px solid var(--gold);border-radius:9px;background:#fff;color:var(--gold-dk);font-family:var(--body);font-weight:700;font-size:.78rem;cursor:pointer}
 </style><script src="/theme.js"></script>
 </head>
 <body>
@@ -57,6 +63,13 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <label>New password</label><input id="pw_new" type="password" autocomplete="new-password">
     <label>Confirm new password</label><input id="pw_conf" type="password" autocomplete="new-password">
     <div class="btnrow"><button class="save" id="pw_save">Update password</button><span class="msg" id="pw_msg"></span></div>
+  </div>
+
+  <div class="panel">
+    <h2>👥 Team &amp; invites</h2>
+    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Sign-up is invite-only. Share a code and that person can create their own account — each code works once.</p>
+    <div class="btnrow"><button class="save" id="inv_new">Generate invite code</button><span class="msg" id="inv_msg"></span></div>
+    <div id="inv_list" style="margin-top:14px"></div>
   </div>
 
   <div class="panel">
@@ -151,7 +164,32 @@ $('tw_test').addEventListener('click',async function(){var m=$('tw_msg');m.class
 $('cal_copy').addEventListener('click',function(){var u=$('cal_url').value;if(!u)return;navigator.clipboard&&navigator.clipboard.writeText(u);var m=$('cal_msg');m.className='msg ok';m.textContent='Copied ✓';});
 $('g_save').addEventListener('click',function(){saveSettings({google_client_id:$('g_id').value.trim(),google_client_secret:$('g_secret').value.trim()},'g_msg');});
 $('m_save').addEventListener('click',function(){saveSettings({ms_client_id:$('m_id').value.trim(),ms_client_secret:$('m_secret').value.trim(),ms_tenant:$('m_tenant').value.trim()},'m_msg');});
-(async function(){if(await guard())loadStatus();})();
+async function loadInvites(){
+  var box=$('inv_list'); if(!box)return;
+  try{
+    var d=await fetch('/api/invites').then(function(r){return r.json();});
+    var list=(d.invites||[]);
+    if(!list.length){box.innerHTML='<p style="color:var(--ink-soft);font-size:.86rem;font-weight:300">No invite codes yet.</p>';return;}
+    box.innerHTML=list.map(function(i){
+      var used=!!i.used_at;
+      return '<div class="invrow"><span class="invcode">'+i.code+'</span>'+
+        '<span class="invchip '+(used?'used':'open')+'">'+(used?'Used':'Available')+'</span>'+
+        (used?'':'<button class="invcopy" data-c="'+i.code+'">Copy invite link</button>')+'</div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.invcopy'),function(b){b.addEventListener('click',function(){
+      var url=location.origin+'/login?invite='+b.getAttribute('data-c');
+      if(navigator.clipboard){navigator.clipboard.writeText(url);}
+      var m=$('inv_msg');m.className='msg ok';m.textContent='Copied '+url;setTimeout(function(){m.textContent='';},3000);
+    });});
+  }catch(e){}
+}
+$('inv_new').addEventListener('click',async function(){
+  var m=$('inv_msg');m.className='msg';m.textContent='Generating…';
+  var d=await fetch('/api/invites',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})}).then(function(r){return r.json();});
+  if(d.ok){m.className='msg ok';m.textContent='New code: '+d.invite.code;loadInvites();}
+  else{m.className='msg err';m.textContent=d.error||'Error';}
+});
+(async function(){if(await guard()){loadStatus();loadInvites();}})();
 </script>
 <script src="/sidebar.js"></script>
 </body></html>

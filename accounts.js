@@ -164,6 +164,43 @@ router.post('/api/auth/password', requireAuth, async (req, res) => {
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
+// Create an account with a valid invite code (invite-only sign-up).
+router.post('/api/auth/register', async (req, res) => {
+  try {
+    const name = clean(req.body.name, 120), email = clean(req.body.email, 200).toLowerCase();
+    const username = clean(req.body.username, 60).toLowerCase(), password = String(req.body.password || '');
+    const code = clean(req.body.code, 80).toUpperCase();
+    if (!name || !isEmail(email) || !username || password.length < 8)
+      return res.status(400).json({ ok: false, error: 'Name, valid email, username, and an 8+ character password are required.' });
+    if (!code) return res.status(400).json({ ok: false, error: 'An invite code is required to create an account.' });
+    const rows = await sb(`invites?code=eq.${enc(code)}&limit=1`);
+    const inv = rows && rows[0];
+    if (!inv) return res.status(403).json({ ok: false, error: 'That invite code is not valid.' });
+    if (inv.used_at) return res.status(403).json({ ok: false, error: 'That invite code has already been used.' });
+    const created = await sb('accounts', { method: 'POST', body: JSON.stringify({
+      name, email, username, role: 'staff', password_hash: hashPassword(password) }) });
+    const acct = created[0];
+    await sb(`invites?id=eq.${inv.id}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ used_at: new Date().toISOString(), used_by: acct.id }) }).catch(() => {});
+    setSession(res, acct);
+    res.json({ ok: true, user: { id: acct.id, role: acct.role, name: acct.name } });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
+// Invite codes (owner generates; team can view).
+router.get('/api/invites', requireAuth, async (req, res) => {
+  try { res.json({ ok: true, invites: await sb('invites?select=*&order=created_at.desc&limit=100') }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+router.post('/api/invites', requireAuth, requireOwner, async (req, res) => {
+  try {
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const rows = await sb('invites', { method: 'POST', body: JSON.stringify({
+      code, created_by: req.account.id, note: clean(req.body.note, 120) || null }) });
+    res.json({ ok: true, invite: rows[0] });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 router.post('/api/auth/logout', (req, res) => {
   res.set('Set-Cookie', `${COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax`);
   res.json({ ok: true });

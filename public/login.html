@@ -30,7 +30,10 @@ button:hover{filter:brightness(1.06)}
 .hint{font-size:.72rem;color:var(--ink-soft);margin-top:5px}
 .msg{margin-top:14px;font-size:.88rem;text-align:center;min-height:1.2em}
 .msg.err{color:var(--red)}.msg.ok{color:var(--sage)}
-.foot{margin-top:18px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+.switch{text-align:center;margin-top:14px}
+.switch a{color:var(--sage);font-size:.85rem;font-weight:700;text-decoration:none;cursor:pointer;border-bottom:1px solid var(--gold-soft)}
+.switch a:hover{color:var(--gold-dk)}
+.foot{margin-top:14px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
 </style><script src="/theme.js"></script>
 </head>
 <body>
@@ -49,41 +52,52 @@ button:hover{filter:brightness(1.06)}
     <div id="userWrap"><label id="userLabel">Login (email or username)</label><input name="identifier" id="identifier"></div>
     <div id="passWrap"><label>Password</label><input name="password" id="password" type="password">
       <div class="hint" id="passHint" style="display:none">At least 8 characters.</div></div>
+    <div id="codeWrap" style="display:none"><label>Invite code</label><input name="code" id="code" placeholder="ABCD1234">
+      <div class="hint">Ask the studio owner for an invite code.</div></div>
     <button type="submit" id="submitBtn">Sign in</button>
     <div class="msg" id="msg"></div>
   </form>
+  <div class="switch"><a id="toggleMode">Have an invite code? Create an account</a></div>
   <div class="foot">Tampa &amp; St. Pete, Florida</div>
 </div>
 <script>
 (function(){var g=['中','發','南','西','八','北'],sp=[[6,10],[14,82],[74,6],[82,72],[40,90],[60,4]],d=document.getElementById('deco');
 sp.forEach(function(p,i){var t=document.createElement('div');t.className='dtile';t.style.top=p[0]+'%';t.style.left=p[1]+'%';t.style.transform='rotate('+((i%2?1:-1)*(5+i))+'deg)';t.textContent=g[i%g.length];d.appendChild(t);});})();
-var setup=false;
+var mode='signin'; // signin | setup | register
+function $(id){return document.getElementById(id);}
+function applyMode(){
+  var isSetup=mode==='setup', isReg=mode==='register';
+  $('setupFields').style.display=(isSetup||isReg)?'block':'none';
+  $('codeWrap').style.display=isReg?'block':'none';
+  $('passHint').style.display=(isSetup||isReg)?'block':'none';
+  $('userLabel').textContent=(isSetup||isReg)?'Username':'Login (email or username)';
+  $('title').textContent=isSetup?'Set up your studio':(isReg?'Create your account':'Welcome back');
+  $('sub').textContent=isSetup?'Create the first login for Tampa Bay Mahj':(isReg?'You will need an invite code':"Sign in to Holly's studio");
+  $('submitBtn').textContent=isSetup?'Create account':(isReg?'Create account':'Sign in');
+  var sw=$('toggleMode');
+  if(isSetup){sw.parentNode.style.display='none';}
+  else{sw.parentNode.style.display='';sw.textContent=isReg?'← Back to sign in':'Have an invite code? Create an account';}
+}
 async function init(){
   try{
-    var s=await fetch('/api/auth/state').then(r=>r.json());
+    var s=await fetch('/api/auth/state').then(function(r){return r.json();});
     if(s.authed){ location.href='/dashboard'; return; }
-    if(s.needsSetup){
-      setup=true;
-      document.getElementById('title').textContent='Set up your studio';
-      document.getElementById('sub').textContent='Create the first login for Tampa Bay Mahj';
-      document.getElementById('setupFields').style.display='block';
-      document.getElementById('userLabel').textContent='Username';
-      document.getElementById('passHint').style.display='block';
-      document.getElementById('submitBtn').textContent='Create account';
+    if(s.needsSetup){ mode='setup'; }
+    else {
+      var inv=new URLSearchParams(location.search).get('invite');
+      if(inv){ mode='register'; $('code').value=inv.toUpperCase(); }
     }
   }catch(e){}
+  applyMode();
 }
+$('toggleMode').addEventListener('click',function(){ mode=(mode==='register')?'signin':'register'; $('msg').textContent=''; applyMode(); });
 document.getElementById('form').addEventListener('submit',async function(ev){
   ev.preventDefault();
-  var msg=document.getElementById('msg'); msg.className='msg'; msg.textContent='Working…';
-  var body,url,$=function(id){return document.getElementById(id);};
-  if(setup){
-    url='/api/auth/setup';
-    body={name:$('name').value,email:$('email').value,username:$('identifier').value,password:$('password').value};
-  }else{
-    url='/api/auth/login';
-    body={identifier:$('identifier').value,password:$('password').value};
-  }
+  var msg=$('msg'); msg.className='msg'; msg.textContent='Working…';
+  var url,body;
+  if(mode==='setup'){ url='/api/auth/setup'; body={name:$('name').value,email:$('email').value,username:$('identifier').value,password:$('password').value}; }
+  else if(mode==='register'){ url='/api/auth/register'; body={name:$('name').value,email:$('email').value,username:$('identifier').value,password:$('password').value,code:$('code').value}; }
+  else { url='/api/auth/login'; body={identifier:$('identifier').value,password:$('password').value}; }
   try{
     var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var d=await r.json();

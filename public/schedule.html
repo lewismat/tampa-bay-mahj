@@ -110,13 +110,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
       <div class="field"><label for="date">Date</label><input id="date" type="date"></div>
       <div class="field"><label for="time">Start time</label><input id="time" type="time" value="13:00"></div>
       <div class="field"><label for="dur">Length (minutes)</label><input id="dur" type="number" value="120" step="15" min="15"></div>
-      <div class="field" id="seatfield" hidden><label for="seats">Seats (4 per table)</label>
-        <select id="seats">
-          <option value="4">1 table — 4 seats</option>
-          <option value="8" selected>2 tables — 8 seats</option>
-          <option value="12">3 tables — 12 seats</option>
-          <option value="16">4 tables — 16 seats</option>
-        </select></div>
+      <div class="field" id="seatfield" hidden><label for="seats">Seats</label><input id="seats" type="number" min="1" max="40" value="8" step="1"><div style="font-size:.72rem;color:var(--ink-soft);margin-top:3px">Total spots — e.g. 8 at one table, 16 at two.</div></div>
       <div class="field"><label for="loc">Where</label><input id="loc" placeholder="e.g. Carrollwood Country Club"></div>
       <div class="field"><label for="price">Price note</label><input id="price" placeholder="e.g. $75 per person"></div>
     </div>
