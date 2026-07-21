@@ -1,0 +1,164 @@
+/* ============================================================
+   heritage.css — Tampa Bay Mahj
+   Savannah / Charleston / Sea Island. Deep forest green, antique
+   brass, parchment. Holly's logo and her yellow stripe stay.
+   Loaded last so it refines the per-page styles without replacing them.
+   ============================================================ */
+
+/* ---------- typography ---------- */
+:root{
+  --display:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --script:'Great Vibes',cursive;
+  --brass-line:linear-gradient(90deg,transparent,#B08D57 18%,#D8C08E 50%,#B08D57 82%,transparent);
+  --paper:0 1px 0 rgba(255,255,255,.7) inset, 0 10px 30px rgba(24,58,42,.09);
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+body{
+  font-family:var(--body);
+  font-size:15.5px;
+  line-height:1.65;
+  letter-spacing:.005em;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4,.n,.num,.big{
+  font-family:var(--display);
+  font-weight:600;
+  letter-spacing:.005em;
+  line-height:1.22;
+}
+h1{letter-spacing:.02em}
+
+/* Small caps labels — the letterpress detail that makes it feel printed. */
+.l,.lbl,label,th,.pvlbl,.hsub .cap{
+  font-family:var(--body);
+  letter-spacing:.11em;
+  text-transform:uppercase;
+  font-size:.68rem;
+  font-weight:600;
+}
+label{color:var(--ink-soft)}
+
+/* ---------- surfaces ---------- */
+.card,.panel,.slot,.tile,.hpanel,.editpanel,.preset,.notelog,.form,.guests,.addform{
+  border-radius:10px;
+  border-color:var(--tile-edge);
+  box-shadow:var(--paper);
+}
+.card,.panel,.hpanel{
+  background:linear-gradient(180deg,#FEFCF6 0%,var(--tile) 100%);
+  padding:24px 26px;
+}
+
+/* A hairline of brass across the top of a panel — the brass inlay on a desk. */
+.panel::before,.hpanel::before{
+  content:'';display:block;height:1px;margin:-24px -26px 20px;
+  background:var(--brass-line);opacity:.55;
+}
+
+/* ---------- buttons ---------- */
+button,.btn,.save,.addbtn,.mini,.cta,.fbtn,.copybtn,.hfix{
+  font-family:var(--body);
+  letter-spacing:.04em;
+  border-radius:8px;
+  transition:background .22s var(--ease),border-color .22s var(--ease),
+             color .22s var(--ease),box-shadow .22s var(--ease);
+}
+.save,.addbtn,.cta,.btn.solid,button.primary,#submitBtn,.copybtn{
+  background:var(--sage);
+  color:#F6F1E2;
+  border:1px solid var(--sage);
+  box-shadow:0 2px 0 rgba(15,42,29,.18);
+}
+.save:hover,.addbtn:hover,.cta:hover,.btn.solid:hover,button.primary:hover,
+#submitBtn:hover,.copybtn:hover{
+  background:var(--gold-dk);
+  border-color:var(--gold-dk);
+  color:#FCF8ED;
+}
+.mini,.fbtn,.ghostbtn,.btn{
+  background:#FBF7EA;
+  border:1px solid var(--tile-edge);
+  color:var(--sage-dk);
+}
+.mini:hover,.fbtn:hover,.btn:hover{border-color:var(--gold);background:#FDFAF0}
+.fbtn.active,.fbtn.on,.devbtn.on{
+  background:var(--sage);color:#F6F1E2;border-color:var(--sage);
+}
+.danger,.archive,.rm,.rmguest,.mini.danger,.btn.danger{
+  color:var(--red);border-color:#DCC6BE;background:#FCF6F3;
+}
+.danger:hover,.archive:hover,.rm:hover,.rmguest:hover,.mini.danger:hover{
+  background:var(--red);color:#FBF4EF;border-color:var(--red);
+}
+
+/* ---------- tables: luxury financial statement ---------- */
+table{border-radius:10px;box-shadow:var(--paper);border-color:var(--tile-edge)}
+th{
+  background:var(--sage)!important;
+  color:#EFE7D2!important;
+  font-size:.66rem;
+  padding:13px 16px!important;
+}
+td{padding:14px 16px!important;border-top:1px solid #EFE6D2}
+tbody tr:nth-child(4n+1) td{background:rgba(253,251,244,.55)}
+tr.row{transition:background .18s var(--ease),box-shadow .18s var(--ease)}
+tr.row:hover td{background:#FBF6E6}
+
+/* ---------- inputs ---------- */
+input,select,textarea{
+  font-family:var(--body);
+  border-radius:8px;
+  border:1px solid var(--tile-edge);
+  background:#FEFCF6;
+  color:var(--ink);
+  transition:border-color .2s var(--ease),box-shadow .2s var(--ease);
+}
+input:hover,select:hover,textarea:hover{border-color:#D6C9A8}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(176,141,87,.16);
+  outline:none;
+}
+
+/* ---------- chips ---------- */
+.chip,.pill,.badge,.status{
+  border-radius:999px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  font-size:.63rem;
+  font-weight:600;
+  padding:4px 11px;
+}
+.chip.lead,.badge.new{background:#F3EBD8;color:var(--gold-dk)}
+.chip.student,.badge.booked{background:#E6EDE5;color:var(--sage)}
+
+/* ---------- letterpress divider ---------- */
+.rule,.divider,hr{
+  border:none;height:1px;background:var(--brass-line);opacity:.6;margin:26px 0;
+}
+
+/* ---------- motion: opening a leather-bound book ---------- */
+@keyframes tbmRise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card,.panel,.slot,.hpanel{animation:tbmRise .34s var(--ease) both}
+.card:nth-child(2){animation-delay:.04s}
+.card:nth-child(3){animation-delay:.08s}
+.card:nth-child(4){animation-delay:.12s}
+@media(prefers-reduced-motion:reduce){
+  .card,.panel,.slot,.hpanel{animation:none}
+}
+
+/* ---------- sidebar: mahogany-and-brass rail ---------- */
+.sb,#tbmSidebar,.sidebar{
+  background:linear-gradient(180deg,#1B4030 0%,var(--sage-dk) 100%)!important;
+  border-right:1px solid rgba(176,141,87,.32);
+}
+.sb a,.sb .item,#tbmSidebar a{letter-spacing:.04em}
+.sb a.active,#tbmSidebar a.active,.sb .item.active{
+  background:rgba(176,141,87,.16)!important;
+  box-shadow:inset 3px 0 0 var(--gold);
+}
+
+/* ---------- numbers deserve the serif ---------- */
+.card .n,.n{font-variant-numeric:oldstyle-nums;letter-spacing:.01em}
