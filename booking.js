@@ -663,7 +663,10 @@ router.post('/api/admin/slots/:id/attendee', auth.requireAuth, async (req, res) 
       return res.status(409).json({ error: `Only ${Math.max(0, free(slot))} seat(s) left. Add seats to the event first.` });
     }
 
-    const payload = { ...p, paid_how: clean(b.paid_how, 40) || 'not recorded', added_by_holly: true };
+    // bookings has no paid_how column, so record it where it will actually survive and show.
+    const how = clean(b.paid_how, 40) || 'not recorded';
+    const stamp = `Added by Holly · paid: ${how}`;
+    const payload = { ...p, notes: p.notes ? `${p.notes} — ${stamp}` : stamp };
     const result = await sb('rpc/book_slot', {
       method: 'POST',
       body: JSON.stringify({ p_slot_id: req.params.id, p_seats: seats, p_booking: payload }),

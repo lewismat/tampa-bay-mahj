@@ -381,7 +381,6 @@ async function load(){
               ? `<span class="note">${esc([b.street_address,b.city,b.state,b.zip].filter(Boolean).join(', '))}${
                   b.headcount?` · expecting ${b.headcount}`:''}</span>`:''}
             ${b.notes?`<span class="note">“${esc(b.notes)}”</span>`:''}
-            ${b.paid_how?`<span class="note">paid: ${esc(b.paid_how)}</span>`:''}
             <button class="mini rmguest" data-cancelb="${b.id}" data-nm="${esc(b.first_name)} ${esc(b.last_name)}">Cancel seat</button>
           </div>`).join('')}</div>`:''}
         ${line.length?`<div class="guests waitline">
