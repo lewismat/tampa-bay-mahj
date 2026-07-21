@@ -62,14 +62,18 @@ td.nm{font-family:var(--display);font-weight:700;font-size:1.02rem;color:var(--s
 .filters,.toolbar select{width:100%}
 .dgrid{grid-template-columns:1fr}
 }
+  .notelog{background:var(--cream);border:1px solid var(--tile-edge);border-radius:8px;
+    padding:10px 12px;font-size:.86rem;line-height:1.6;max-height:190px;overflow:auto;white-space:normal}
+  .notelog .muted{color:var(--ink-soft)}
 </style></head>
 <body>
 <div class="wrap">
   <div class="top"><h1>Students</h1><span class="count" id="count">—</span></div>
   <div class="toolbar">
     <input class="search" id="search" placeholder="Search name, email, phone, tag…">
-    <div class="filters"><button class="fbtn active" data-f="">All</button><button class="fbtn" data-f="lead">Leads</button><button class="fbtn" data-f="student">Students</button></div>
+    <div class="filters"><button class="fbtn active" data-f="">All</button><button class="fbtn" data-f="lead">Leads</button><button class="fbtn" data-f="student">Students</button><button class="fbtn" data-f="waiting">Waiting on me</button></div>
     <select id="skillFilter"><option value="">All skill levels</option><option value="beginner">Beginner</option><option value="advanced_beginner">Advanced beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select>
+    <button class="addbtn" id="exportBtn" style="background:transparent;color:var(--sage-dk);border:1px solid var(--tile-edge)">Export CSV</button>
     <button class="addbtn" id="addToggle">+ Add student</button>
   </div>
   <div class="addform" id="addform">
@@ -90,7 +94,7 @@ td.nm{font-family:var(--display);font-weight:700;font-size:1.02rem;color:var(--s
         <th data-s="email">Email <span class="ar"></span></th>
         <th data-s="phone">Phone <span class="ar"></span></th>
         <th data-s="tags">Tags <span class="ar"></span></th>
-        <th data-s="updated_at">Updated <span class="ar"></span></th>
+        <th data-s="updated_at">Last touched <span class="ar"></span></th>
       </tr></thead>
       <tbody id="tbody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
     </table>
@@ -101,6 +105,17 @@ td.nm{font-family:var(--display);font-weight:700;font-size:1.02rem;color:var(--s
 <script>
 var SKILL={beginner:'Beginner',advanced_beginner:'Adv. beginner',intermediate:'Intermediate',advanced:'Advanced'};
 var curFilter='',curSkill='',sortKey='updated_at',sortDir=-1,rows=[],openId=null;
+function daysSince(d){ if(!d) return null;
+  return Math.floor((Date.now()-new Date(d).getTime())/86400000); }
+// A lead nobody has replied to in five days is the thing most likely to be lost.
+function isWaiting(s){ var n=daysSince(s.updated_at); return s.status==='lead'&&n!==null&&n>=5; }
+function ageCell(s){
+  var n=daysSince(s.updated_at);
+  if(n===null) return '';
+  var t=n===0?'today':(n===1?'yesterday':n+' days ago');
+  if(isWaiting(s)) return '<span class="chip" style="background:#F6E2D8;color:#B3542E">'+t+'</span>';
+  return t;
+}
 function $(id){return document.getElementById(id);}
 function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function val(id){return $(id).value.trim();}
@@ -119,6 +134,7 @@ function sortRows(){
 }
 function render(){
   var list=rows.filter(function(s){return !curSkill||s.skill_level===curSkill;});
+  if(curFilter==='waiting') list=list.filter(isWaiting);
   $('count').textContent=list.length+(curFilter==='lead'?' lead':curFilter==='student'?' student':' record')+(list.length===1?'':'s');
   var tb=$('tbody');
   if(!list.length){tb.innerHTML='<tr><td colspan="7" class="empty">Nothing here yet.</td></tr>';return;}
@@ -131,7 +147,7 @@ function render(){
       '<td class="muted">'+esc(s.email||'')+'</td>'+
       '<td class="muted">'+esc(s.phone||'')+'</td>'+
       '<td class="muted">'+esc(s.tags||'')+'</td>'+
-      '<td class="muted">'+fmtDate(s.updated_at)+'</td></tr>'+
+      '<td class="muted">'+ageCell(s)+'</td></tr>'+
       '<tr class="detail" id="d_'+s.id+'" style="display:none"><td colspan="7"><div class="inner" id="di_'+s.id+'"></div></td></tr>';
   }).join('');
   Array.prototype.forEach.call(tb.querySelectorAll('tr.row'),function(tr){tr.addEventListener('click',function(){toggle(tr.getAttribute('data-id'));});});
@@ -167,7 +183,13 @@ async function toggle(id){
     '<div><label>Status</label><select id="e_status_'+id+'"><option value="lead"'+(s.status==='lead'?' selected':'')+'>Lead</option><option value="student"'+(s.status!=='lead'?' selected':'')+'>Student</option></select></div>'+
     '<div><label>Birthday</label><input type="date" id="e_bday_'+id+'" value="'+esc(s.birthday||'')+'"></div>'+
     '<div class="wide"><label>Tags</label><input id="e_tags_'+id+'" value="'+esc(s.tags||'')+'"></div>'+
-    '<div class="wide"><label>Notes</label><textarea id="e_notes_'+id+'">'+esc(s.notes||'')+'</textarea></div>'+
+    '<div class="wide"><label>Add a note</label>'+
+      '<textarea id="e_newnote_'+id+'" placeholder="Plays Wednesdays · knows Nancy · nervous about the Charleston pass"></textarea>'+
+      '<div class="hint" style="font-size:.75rem;color:var(--ink-soft);margin-top:4px">Dated and added to the list below. Nothing gets overwritten.</div></div>'+
+    '<div class="wide"><label>Everything you have written</label>'+
+      '<div class="notelog" id="e_notes_view_'+id+'">'+(s.notes?esc(s.notes).replace(/\n/g,'<br>'):'<span class="muted">Nothing yet.</span>')+'</div>'+
+      '<textarea id="e_notes_'+id+'" style="display:none">'+esc(s.notes||'')+'</textarea>'+
+      '<button type="button" class="archive" id="e_editnotes_'+id+'" style="margin-top:6px;font-size:.76rem">Edit older notes</button></div>'+
     '</div>'+
     '<div class="dactions"><button class="save" id="e_save_'+id+'">Save</button>'+
       (s.status==='lead'?'<button class="convert" id="e_conv_'+id+'">✓ Convert to student</button>':'')+
@@ -177,20 +199,49 @@ async function toggle(id){
   inner.addEventListener('click',function(e){e.stopPropagation();});
   $('e_save_'+id).addEventListener('click',async function(){
     var m=$('e_msg_'+id);m.className='msg';m.textContent='Saving…';
-    var body={first_name:val('e_first_'+id),last_name:val('e_last_'+id),email:val('e_email_'+id),phone:val('e_phone_'+id),skill_level:$('e_skill_'+id).value,status:$('e_status_'+id).value,birthday:val('e_bday_'+id),tags:val('e_tags_'+id),notes:$('e_notes_'+id).value};
+    var existing=$('e_notes_'+id).value;
+    var fresh=($('e_newnote_'+id)?$('e_newnote_'+id).value.trim():'');
+    if(fresh){
+      var stamp=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      existing=(stamp+' — '+fresh)+(existing?'\n'+existing:'');
+    }
+    var body={first_name:val('e_first_'+id),last_name:val('e_last_'+id),email:val('e_email_'+id),phone:val('e_phone_'+id),skill_level:$('e_skill_'+id).value,status:$('e_status_'+id).value,birthday:val('e_bday_'+id),tags:val('e_tags_'+id),notes:existing};
     var r=await fetch('/api/students/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(x=>x.json());
     if(r.ok){m.className='msg ok';m.textContent='Saved ✓';load(true);}else{m.className='msg err';m.textContent=r.error||'Error';}
+  });
+  var en=$('e_editnotes_'+id);
+  if(en)en.addEventListener('click',function(){
+    var ta=$('e_notes_'+id), vw=$('e_notes_view_'+id);
+    var showing=ta.style.display!=='none';
+    ta.style.display=showing?'none':'block';
+    vw.style.display=showing?'block':'none';
+    en.textContent=showing?'Edit older notes':'Done editing';
   });
   var cv=$('e_conv_'+id);if(cv)cv.addEventListener('click',async function(){await fetch('/api/students/'+id+'/convert',{method:'POST'});load(true);});
   $('e_arch_'+id).addEventListener('click',async function(){await fetch('/api/students/'+id+'/archive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({archived:true})});openId=null;load(true);});
 }
 async function load(keepOpen){
-  var q=val('search'),qs=[];if(q)qs.push('q='+encodeURIComponent(q));if(curFilter)qs.push('status='+curFilter);
+  var q=val('search'),qs=[];if(q)qs.push('q='+encodeURIComponent(q));
+  if(curFilter==='waiting')qs.push('status=lead');
+  else if(curFilter)qs.push('status='+curFilter);
   var d=await fetch('/api/students'+(qs.length?'?'+qs.join('&'):'')).then(r=>r.json());
   rows=d.students||[];sortRows();render();
 }
 // events
 var st;$('search').addEventListener('input',function(){clearTimeout(st);st=setTimeout(load,220);});
+if($('exportBtn'))$('exportBtn').addEventListener('click',function(){
+  var list=rows.filter(function(s){return !curSkill||s.skill_level===curSkill;});
+  if(curFilter==='waiting')list=list.filter(isWaiting);
+  if(!list.length){ if(window.toast)toast('Nothing to export in this view.','bad'); return; }
+  var cols=['first_name','last_name','status','skill_level','email','phone','tags','source','notes','updated_at'];
+  var q=function(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; };
+  var csv=cols.join(',')+'\n'+list.map(function(r){return cols.map(function(c){return q(r[c]);}).join(',');}).join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='tampa-bay-mahj-'+(curFilter||'all')+'-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  if(window.toast)toast('Exported '+list.length+' record'+(list.length===1?'':'s')+' to your downloads.');
+});
 Array.prototype.forEach.call(document.querySelectorAll('.fbtn'),function(b){b.addEventListener('click',function(){document.querySelectorAll('.fbtn').forEach(function(x){x.classList.remove('active');});b.classList.add('active');curFilter=b.getAttribute('data-f');load();});});
 $('skillFilter').addEventListener('change',function(){curSkill=this.value;render();});
 Array.prototype.forEach.call(document.querySelectorAll('thead th'),function(th){th.addEventListener('click',function(){var k=th.getAttribute('data-s');if(k===sortKey)sortDir=-sortDir;else{sortKey=k;sortDir=1;}sortRows();render();});});
