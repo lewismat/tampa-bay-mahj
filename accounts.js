@@ -662,13 +662,17 @@ router.post('/api/auth/forgot', async (req, res) => {
 });
 
 router.post('/api/auth/reset', async (req, res) => {
+  const stale = { ok: false, error: 'That reset link has expired or already been used. Ask for a new one.' };
   try {
     const b = req.body || {};
-    const rows = await sb(`accounts?select=*&id=eq.${encodeURIComponent(clean(b.who, 60))}&limit=1`);
-    const acct = rows && rows[0];
-    if (!acct || !checkResetToken(b.token, acct)) {
-      return res.status(400).json({ ok: false, error: 'That reset link has expired or already been used. Ask for a new one.' });
+    const who = clean(b.who, 60);
+    // Never let a malformed id reach the database — it answers with its own error text.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(who)) {
+      return res.status(400).json(stale);
     }
+    const rows = await sb(`accounts?select=*&id=eq.${encodeURIComponent(who)}&limit=1`).catch(() => []);
+    const acct = rows && rows[0];
+    if (!acct || !checkResetToken(b.token, acct)) return res.status(400).json(stale);
     if (!b.password || String(b.password).length < 8) {
       return res.status(400).json({ ok: false, error: 'Pick a password of at least 8 characters.' });
     }
@@ -677,7 +681,10 @@ router.post('/api/auth/reset', async (req, res) => {
       body: JSON.stringify({ password_hash: hashPassword(String(b.password)) }),
     });
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  } catch (e) {
+    console.error('[auth] reset:', e.message);
+    res.status(400).json(stale);
+  }
 });
 
 router.get('/request',  (req, res) => res.redirect('/'));
