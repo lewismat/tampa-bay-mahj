@@ -255,9 +255,14 @@ async function saveEditor(id){
     headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const out=await r.json().catch(()=>({}));
   if(!r.ok){ btn.disabled=false; msg.style.color='#B3542E'; msg.textContent=out.error||'Could not save that.'; return; }
-  const n=out.notified||0;
+  const n=out.notified||0, f=out.failed||0;
   msg.style.color='var(--sage)';
   msg.textContent='Saved ✓'+(n?` — ${n} ${n===1?'person':'people'} emailed`:'');
+  if(f){
+    msg.style.color='#B3542E';
+    msg.textContent='Saved, but '+f+' '+(f===1?'person was':'people were')+' NOT told — '+
+      (out.warning||'email could not send')+'. Set up email in Settings, or contact them yourself.';
+  }
   setTimeout(()=>{load();refreshPreview();},900);
 }
 

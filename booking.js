@@ -808,19 +808,26 @@ router.patch('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
       changes.push({ label: 'Where', from: before.location || 'To be confirmed', to: patch.location || 'To be confirmed' });
     }
 
-    let notified = 0;
+    // Count only what actually sent. Reporting attempts would be the same silent
+    // lie that let broken email go unnoticed for weeks.
+    let notified = 0, failed = 0, warning = null;
     if (changes.length && b.notify_guests) {
       const live = await sb(`bookings?select=*&slot_id=eq.${id}&status=eq.confirmed`).catch(() => []);
       for (const bk of (live || [])) {
         try {
-          await mail.eventChanged(bk, updated, bk.manage_token, changes);
+          const out = await mail.eventChanged(bk, updated, bk.manage_token, changes);
+          if (out && out.ok) notified++;
+          else { failed++; if (out && (out.reason || out.error)) warning = out.reason || out.error; }
           if (bk.phone) {
             sms.sendSMS(bk.phone, `Update from Tampa Bay Mahj — your ${updated.title || TYPE_LABEL[updated.slot_type]} is now ${fmt(updated.starts_at)}. Details: ${SITE_URL}/booking/${bk.manage_token}`).catch(() => {});
           }
-          notified++;
-        } catch (e) { console.error('[booking] change notice failed:', e.message); }
+        } catch (e) { failed++; console.error('[booking] change notice failed:', e.message); }
       }
+      if (failed && !warning) warning = 'Some notices could not be sent.';
     }
+
+    res.json({ ...updated, changed: changes, notified, failed, warning });
+    return;
 
     doSweep().catch(() => {});
     res.json({ ...updated, changed: changes, notified });
