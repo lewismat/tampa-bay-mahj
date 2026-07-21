@@ -81,6 +81,22 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
 .atbl .an{font-family:var(--display);font-weight:700;color:var(--sage-dk,#3B4832);font-size:1rem}
 .atbl .am{color:var(--ink-soft,#5D6656)}
 .attsearch{width:100%;padding:10px 12px;border:1px solid var(--tile-edge);border-radius:9px;margin-bottom:12px;font-family:'Karla',sans-serif;font-size:.9rem}
+  .addwrap{margin-top:10px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .addhint{font-size:.76rem;color:var(--sage-soft)}
+  .rmguest{margin-left:8px;font-size:.74rem;padding:3px 9px;color:var(--red);border-color:var(--tile-edge)}
+  .editpanel{margin-top:12px;padding:16px;background:var(--tile);border:1px solid var(--tile-edge);
+    border-radius:11px}
+  .edgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .edgrid label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--sage-soft);margin-bottom:4px;font-weight:600}
+  .edgrid input,.edgrid select{width:100%;padding:8px 10px;border:1px solid var(--tile-edge);
+    border-radius:8px;font:inherit;font-size:.88rem;background:var(--cream);color:var(--sage-dk)}
+  .edfull{grid-column:1/-1}
+  .notifybox{grid-column:1/-1;display:flex;gap:9px;align-items:flex-start;padding:11px 13px;margin-top:2px;
+    background:#FBF6E4;border:1px solid var(--gold-soft);border-radius:9px;font-size:.85rem;line-height:1.45}
+  .notifybox input{width:auto;margin-top:3px;flex:none}
+  .edrow{display:flex;gap:9px;align-items:center;margin-top:13px;flex-wrap:wrap}
+  .edmsg{font-size:.85rem}
   .priceset{display:inline-flex;align-items:center;gap:4px;font-size:.8rem;color:var(--sage-dk)}
   .priceinp{width:62px;padding:4px 6px;border:1px solid var(--tile-edge);border-radius:7px;
     font:inherit;font-size:.8rem;background:var(--tile);color:var(--sage-dk)}
@@ -176,6 +192,138 @@ const typeSel=document.getElementById('type');
 typeSel.onchange=()=>document.getElementById('seatfield').hidden=typeSel.value!=='group_class';
 
 document.getElementById('date').valueAsDate=new Date();
+var SLOTS=[];
+
+
+function two(n){return String(n).padStart(2,'0');}
+function localParts(iso){
+  const d=new Date(iso);
+  return {date:d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()),
+          time:two(d.getHours())+':'+two(d.getMinutes())};
+}
+function openEditor(id){
+  const s=SLOTS.filter(x=>x.id===id)[0]; if(!s) return;
+  const host=document.getElementById('ed_'+id); if(!host) return;
+  if(!host.hidden){ host.hidden=true; host.innerHTML=''; return; }
+  const p=localParts(s.starts_at);
+  const booked=(s.bookings||[]).filter(b=>b.status==='confirmed').length;
+  host.hidden=false;
+  host.innerHTML=`
+    <div class="edgrid">
+      <div class="edfull"><label>Event name</label><input id="e_title_${id}" value="${(s.title||'').replace(/"/g,'&quot;')}" placeholder="e.g. Beginner Bootcamp"></div>
+      <div><label>Session</label><select id="e_type_${id}">
+        <option value="private_lesson">Private lesson</option>
+        <option value="group_class">Group class</option>
+        <option value="private_party">Private party</option></select></div>
+      <div><label>Date</label><input id="e_date_${id}" type="date" value="${p.date}"></div>
+      <div><label>Start time</label><input id="e_time_${id}" type="time" value="${p.time}"></div>
+      <div><label>Length (minutes)</label><input id="e_dur_${id}" type="number" min="15" max="600" step="15" value="${s.duration_minutes}"></div>
+      <div><label>Seats</label><input id="e_seats_${id}" type="number" min="1" max="40" value="${s.seats_total}"></div>
+      <div><label>Price per seat ($)</label><input id="e_price_${id}" type="number" min="0" step="1" value="${s.price_cents?(s.price_cents/100):''}" placeholder="0"></div>
+      <div class="edfull"><label>Where</label><input id="e_loc_${id}" value="${(s.location||'').replace(/"/g,'&quot;')}" placeholder="e.g. Carrollwood Country Club"></div>
+      <div class="edfull"><label>Extra details</label><input id="e_note_${id}" value="${(s.price_note||'').replace(/"/g,'&quot;')}" placeholder="e.g. includes cards &amp; tiles"></div>
+      ${booked?`<label class="notifybox"><input type="checkbox" id="e_notify_${id}" checked>
+        <span><b>Email the ${booked} ${booked===1?'person':'people'} booked</b> if you change the date, time, length or place.
+        They will get the new details and a link to their booking.</span></label>`:''}
+    </div>
+    <div class="edrow">
+      <button class="mini primary" id="e_save_${id}">Save changes</button>
+      <button class="mini" id="e_cancel_${id}">Cancel</button>
+      <span class="edmsg" id="e_msg_${id}"></span>
+    </div>`;
+  document.getElementById('e_type_'+id).value=s.slot_type;
+  document.getElementById('e_cancel_'+id).onclick=()=>{host.hidden=true;host.innerHTML='';};
+  document.getElementById('e_save_'+id).onclick=()=>saveEditor(id);
+}
+
+async function saveEditor(id){
+  const v=x=>document.getElementById(x+'_'+id);
+  const msg=v('e_msg'), btn=v('e_save');
+  const d=v('e_date').value, t=v('e_time').value;
+  if(!d||!t){ msg.style.color='#B3542E'; msg.textContent='Pick a date and a start time.'; return; }
+  const starts=new Date(d+'T'+t);
+  if(isNaN(starts)){ msg.style.color='#B3542E'; msg.textContent='That date and time did not make sense.'; return; }
+  const nEl=v('e_notify');
+  btn.disabled=true; msg.style.color=''; msg.textContent='Saving…';
+  const body={title:v('e_title').value.trim(),slot_type:v('e_type').value,
+    starts_at:starts.toISOString(),duration_minutes:parseInt(v('e_dur').value,10)||60,
+    seats_total:parseInt(v('e_seats').value,10)||1,location:v('e_loc').value.trim(),
+    price_note:v('e_note').value.trim(),
+    price_cents:Math.round((parseFloat(v('e_price').value)||0)*100),
+    notify_guests:nEl?nEl.checked:false};
+  const r=await fetch('/api/admin/slots/'+id,{method:'PATCH',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const out=await r.json().catch(()=>({}));
+  if(!r.ok){ btn.disabled=false; msg.style.color='#B3542E'; msg.textContent=out.error||'Could not save that.'; return; }
+  const n=out.notified||0;
+  msg.style.color='var(--sage)';
+  msg.textContent='Saved ✓'+(n?` — ${n} ${n===1?'person':'people'} emailed`:'');
+  setTimeout(()=>{load();refreshPreview();},900);
+}
+
+
+function openAdder(id){
+  const host=document.getElementById('ad_'+id); if(!host) return;
+  if(!host.hidden){ host.hidden=true; host.innerHTML=''; return; }
+  const s=SLOTS.filter(x=>x.id===id)[0];
+  const left=s?(s.seats_total-s.seats_taken-(s.seats_held||0)):1;
+  host.hidden=false;
+  host.innerHTML=`
+    <div class="edgrid">
+      <div><label>First name</label><input id="a_fn_${id}"></div>
+      <div><label>Last name</label><input id="a_ln_${id}"></div>
+      <div><label>Email</label><input id="a_em_${id}" type="email" placeholder="optional"></div>
+      <div><label>Phone</label><input id="a_ph_${id}" type="tel" placeholder="optional"></div>
+      <div><label>Seats</label><input id="a_seats_${id}" type="number" min="1" max="${Math.max(1,left)}" value="1"></div>
+      <div><label>How did they pay?</label><select id="a_paid_${id}">
+        <option value="cash">Cash</option><option value="Venmo">Venmo</option>
+        <option value="already paid">Already paid</option><option value="comped">Comped</option>
+        <option value="not recorded">Not recorded</option></select></div>
+      <label class="notifybox"><input type="checkbox" id="a_send_${id}">
+        <span><b>Email them a confirmation</b> with the date, the address and a link to cancel.
+        Needs an email address above.</span></label>
+    </div>
+    <div class="edrow">
+      <button class="mini primary" id="a_save_${id}">Add to this event</button>
+      <button class="mini" id="a_cancel_${id}">Cancel</button>
+      <span class="edmsg" id="a_msg_${id}"></span>
+    </div>`;
+  document.getElementById('a_cancel_'+id).onclick=()=>{host.hidden=true;host.innerHTML='';};
+  document.getElementById('a_save_'+id).onclick=()=>saveAdder(id);
+}
+
+async function saveAdder(id){
+  const v=x=>document.getElementById(x+'_'+id);
+  const msg=v('a_msg'), btn=v('a_save');
+  if(!v('a_fn').value.trim()||!v('a_ln').value.trim()){
+    msg.style.color='#B3542E'; msg.textContent='Add a first and last name.'; return;
+  }
+  if(v('a_send').checked&&!v('a_em').value.trim()){
+    msg.style.color='#B3542E'; msg.textContent='Add an email address, or untick the confirmation box.'; return;
+  }
+  btn.disabled=true; msg.style.color=''; msg.textContent='Adding…';
+  const r=await fetch('/api/admin/slots/'+id+'/attendee',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({first_name:v('a_fn').value.trim(),last_name:v('a_ln').value.trim(),
+      email:v('a_em').value.trim(),phone:v('a_ph').value.trim(),
+      seats:parseInt(v('a_seats').value,10)||1,paid_how:v('a_paid').value,
+      send_confirmation:v('a_send').checked})});
+  const out=await r.json().catch(()=>({}));
+  if(!r.ok){ btn.disabled=false; msg.style.color='#B3542E'; msg.textContent=out.error||'Could not add them.'; return; }
+  msg.style.color='var(--sage)';
+  msg.textContent='Added ✓'+(out.emailed?' — confirmation sent':'');
+  setTimeout(()=>{load();refreshPreview();},900);
+}
+
+async function cancelSeat(bookingId,name){
+  const tell=confirm('Cancel '+name+"'s seat?\n\nOK = cancel and email them.\nCancel = go back (nothing happens).");
+  if(!tell) return;
+  const r=await fetch('/api/admin/bookings/'+bookingId+'/cancel',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({tell_them:true})});
+  const out=await r.json().catch(()=>({}));
+  if(!r.ok){ alert(out.error||'Could not cancel that seat.'); return; }
+  load();refreshPreview();
+}
 
 async function load(){
   const el=document.getElementById('list');
@@ -184,6 +332,7 @@ async function load(){
     if(r.status===401){ location.href='/login'; return; }
     if(!r.ok) throw new Error('Could not load your calendar.');
     const slots=await r.json();
+    SLOTS=slots;
     renderAttendees(slots);
     if(!slots.length){ el.innerHTML='<p class="empty">Nothing on the calendar yet. Open a date above.</p>'; return; }
     const now=Date.now();
@@ -213,13 +362,17 @@ async function load(){
             </div>
           </div>
           <div class="btns">
-            <span class="priceset">$<input class="priceinp" type="number" min="0" step="1"
-              value="${s.price_cents?(s.price_cents/100):''}" placeholder="0" data-price="${s.id}"
-              title="Price per seat — 0 or blank means free"><button class="mini" data-savep="${s.id}">Save price</button></span>
+            <button class="mini" data-edit="${s.id}">Edit</button>
             <button class="mini" data-pub="${s.id}" data-val="${!s.published}">${s.published?'Hide':'Show'}</button>
             <button class="mini danger" data-del="${s.id}">Remove</button>
           </div>
         </div>
+        <div class="editpanel" id="ed_${s.id}" hidden></div>
+        <div class="addwrap">
+          <button class="mini" data-add="${s.id}">+ Add someone</button>
+          <span class="addhint">for cash, Venmo or a text message</span>
+        </div>
+        <div class="editpanel" id="ad_${s.id}" hidden></div>
         ${live.length?`<div class="guests">${live.map(b=>`
           <div class="guest">
             <strong>${esc(b.first_name)} ${esc(b.last_name)}</strong>${b.seats>1?` · ${b.seats} seats`:''}
@@ -228,6 +381,8 @@ async function load(){
               ? `<span class="note">${esc([b.street_address,b.city,b.state,b.zip].filter(Boolean).join(', '))}${
                   b.headcount?` · expecting ${b.headcount}`:''}</span>`:''}
             ${b.notes?`<span class="note">“${esc(b.notes)}”</span>`:''}
+            ${b.paid_how?`<span class="note">paid: ${esc(b.paid_how)}</span>`:''}
+            <button class="mini rmguest" data-cancelb="${b.id}" data-nm="${esc(b.first_name)} ${esc(b.last_name)}">Cancel seat</button>
           </div>`).join('')}</div>`:''}
         ${line.length?`<div class="guests waitline">
           <div class="linehead">Waiting</div>
@@ -247,15 +402,9 @@ async function load(){
         headers:{'Content-Type':'application/json'},body:JSON.stringify({published:b.dataset.val==='true'})});
       load();refreshPreview();
     });
-    el.querySelectorAll('[data-savep]').forEach(b=>b.onclick=async()=>{
-      const inp=el.querySelector('[data-price="'+b.dataset.savep+'"]');
-      const cents=Math.round((parseFloat(inp.value)||0)*100);
-      b.disabled=true;b.textContent='Saving…';
-      const r=await fetch('/api/admin/slots/'+b.dataset.savep,{method:'PATCH',
-        headers:{'Content-Type':'application/json'},body:JSON.stringify({price_cents:cents})});
-      if(!r.ok){ const d=await r.json().catch(()=>({})); alert(d.error||'Could not save that price.'); }
-      load();refreshPreview();
-    });
+    el.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEditor(b.dataset.edit));
+    el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>openAdder(b.dataset.add));
+    el.querySelectorAll('[data-cancelb]').forEach(b=>b.onclick=()=>cancelSeat(b.dataset.cancelb,b.dataset.nm));
     el.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
       if(!confirm('Remove this date from the booking page?')) return;
       const r=await fetch('/api/admin/slots/'+b.dataset.del,{method:'DELETE'});

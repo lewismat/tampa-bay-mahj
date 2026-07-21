@@ -208,4 +208,43 @@ function ownerAlert(to, subject, fields) {
   });
 }
 
-module.exports = { send, configured, clearCache, ownerAlert, bookingConfirmed, waitlistJoined, waitlistOffer, offerClaimed };
+// Sent when Holly changes the date, time, length or place of an event.
+function eventChanged(booking, slot, manageToken, changes) {
+  const url = `${SITE_URL}/booking/${manageToken}`;
+  const lines = (changes || []).map((c) =>
+    `<tr><td style="padding:5px 14px 5px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;color:#7A8A6B;white-space:nowrap;">${esc(c.label)}</td>` +
+    `<td style="padding:5px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;color:#3B4832;">` +
+    `<s style="color:#9AA88C;">${esc(c.from)}</s> &rarr; <b>${esc(c.to)}</b></td></tr>`
+  ).join('');
+  return send({
+    to: booking.email,
+    subject: `Updated — your ${LABEL[slot.slot_type]} on ${when(slot.starts_at)}`,
+    html: shell(
+      h1('A change to your booking.') +
+      p(`Hi ${esc(booking.first_name)} — Holly updated the details for your ${LABEL[slot.slot_type]}. Your seat is still reserved.`) +
+      `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 4px;">${lines}</table>` +
+      big(when(slot.starts_at)) +
+      where(slot) +
+      btn(`${url}/google`, 'Update Google Calendar') +
+      btn(`${url}/calendar.ics`, 'Apple / Outlook (.ics)', false) +
+      btn(url, 'View or cancel', false) +
+      p('If the new time does not work, you can cancel from that link and Holly will be told.')
+    ),
+  });
+}
+
+// Holly cancelled someone's seat from her end.
+function bookingCancelledByHolly(booking, slot, note) {
+  return send({
+    to: booking.email,
+    subject: `Cancelled — ${LABEL[slot.slot_type]} on ${when(slot.starts_at)}`,
+    html: shell(
+      h1('Your booking was cancelled.') +
+      p(`Hi ${esc(booking.first_name)} — Holly cancelled your seat for the ${LABEL[slot.slot_type]} on ${when(slot.starts_at)}.`) +
+      (note ? p(esc(note)) : '') +
+      p('If this is a surprise, just reply to this email and Holly will sort it out.')
+    ),
+  });
+}
+
+module.exports = { send, configured, clearCache, ownerAlert, eventChanged, bookingCancelledByHolly, bookingConfirmed, waitlistJoined, waitlistOffer, offerClaimed };

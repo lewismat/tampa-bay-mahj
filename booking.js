@@ -648,6 +648,71 @@ router.get('/booking/:token/google', async (req, res) => {
   }
 });
 
+// Holly adds someone who paid cash, Venmo'd her, or just texted.
+router.post('/api/admin/slots/:id/attendee', auth.requireAuth, async (req, res) => {
+  try {
+    const id = encodeURIComponent(req.params.id);
+    const b = req.body || {};
+    const p = person(b);
+    if (!p.first_name || !p.last_name) return res.status(400).json({ error: 'Add a first and last name.' });
+    const seats = Math.max(1, parseInt(b.seats, 10) || 1);
+
+    const [slot] = await sb(`slots?select=*&id=eq.${id}`);
+    if (!slot) return res.status(404).json({ error: 'That event is no longer here.' });
+    if (seats > free(slot)) {
+      return res.status(409).json({ error: `Only ${Math.max(0, free(slot))} seat(s) left. Add seats to the event first.` });
+    }
+
+    const payload = { ...p, paid_how: clean(b.paid_how, 40) || 'not recorded', added_by_holly: true };
+    const result = await sb('rpc/book_slot', {
+      method: 'POST',
+      body: JSON.stringify({ p_slot_id: req.params.id, p_seats: seats, p_booking: payload }),
+    });
+    if (!result?.ok) return res.status(409).json({ error: result?.error || 'That event just filled up.' });
+
+    upsertStudentFromBooking(payload, slot);
+    let emailed = false;
+    if (b.send_confirmation && p.email) {
+      try {
+        const out = await mail.bookingConfirmed({ ...payload, seats }, slot, result.manage_token);
+        emailed = !!(out && out.ok);
+      } catch (e) { console.error('[booking] manual confirm failed:', e.message); }
+    }
+    res.json({ ok: true, emailed, manage_url: `${SITE_URL}/booking/${result.manage_token}` });
+  } catch (e) {
+    console.error('[booking] add attendee:', e.message);
+    res.status(500).json({ error: 'Could not add them. Please try again.' });
+  }
+});
+
+// Holly cancels a seat from her end — someone called, or could not make it.
+router.post('/api/admin/bookings/:id/cancel', auth.requireAuth, async (req, res) => {
+  try {
+    const id = encodeURIComponent(req.params.id);
+    const [bk] = await sb(`bookings?select=*,slots(*)&id=eq.${id}`);
+    if (!bk) return res.status(404).json({ error: 'That booking is no longer here.' });
+    if (bk.status !== 'confirmed') return res.status(409).json({ error: 'That seat is already cancelled.' });
+
+    const result = await sb('rpc/cancel_booking', {
+      method: 'POST', body: JSON.stringify({ p_token: bk.manage_token }),
+    });
+    if (!result?.ok) return res.status(400).json({ error: result?.error || 'Could not cancel that seat.' });
+
+    let emailed = false;
+    if (req.body && req.body.tell_them && bk.email) {
+      try {
+        const out = await mail.bookingCancelledByHolly(bk, bk.slots, clean(req.body.note, 300));
+        emailed = !!(out && out.ok);
+      } catch (e) { console.error('[booking] cancel notice failed:', e.message); }
+    }
+    // Freeing a seat is exactly when the waitlist should move.
+    doSweep().catch(() => {});
+    res.json({ ok: true, emailed });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /* ------------------------------------------------------- Holly-only API */
 
 router.get('/schedule', (req, res) =>
@@ -694,30 +759,73 @@ router.post('/api/admin/slots', auth.requireAuth, async (req, res) => {
 
 router.patch('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
   try {
+    const id = encodeURIComponent(req.params.id);
+    const [before] = await sb(`slots?select=*&id=eq.${id}`);
+    if (!before) return res.status(404).json({ error: 'That event is no longer here.' });
+
+    const b = req.body || {};
     const patch = {};
-    if ('published' in req.body) patch.published = !!req.body.published;
-    if ('price_cents' in req.body) patch.price_cents = Math.max(0, Math.min(500000, parseInt(req.body.price_cents, 10) || 0));
-    if ('price_note' in req.body) patch.price_note = clean(req.body.price_note, 120) || null;
-    if ('title' in req.body) patch.title = clean(req.body.title, 120) || null;
-    if ('seats_total' in req.body) {
-      const [cur] = await sb(`slots?select=seats_taken,seats_held&id=eq.${encodeURIComponent(req.params.id)}`);
-      const want = Math.min(40, Math.max(1, parseInt(req.body.seats_total, 10) || 1));
-      const floor = cur.seats_taken + (cur.seats_held || 0);
+    if ('published' in b) patch.published = !!b.published;
+    if ('price_cents' in b) patch.price_cents = Math.max(0, Math.min(500000, parseInt(b.price_cents, 10) || 0));
+    if ('price_note' in b) patch.price_note = clean(b.price_note, 120) || null;
+    if ('title' in b) patch.title = clean(b.title, 120) || null;
+    if ('location' in b) patch.location = clean(b.location, 200) || null;
+    if ('notes' in b) patch.notes = clean(b.notes, 2000) || null;
+    if ('slot_type' in b && TYPE_LABEL[b.slot_type]) patch.slot_type = b.slot_type;
+
+    if ('starts_at' in b && b.starts_at) {
+      const d = new Date(b.starts_at);
+      if (isNaN(d)) return res.status(400).json({ error: 'That date and time did not make sense.' });
+      patch.starts_at = d.toISOString();
+    }
+    if ('duration_minutes' in b) {
+      patch.duration_minutes = Math.min(600, Math.max(15, parseInt(b.duration_minutes, 10) || 60));
+    }
+    if ('seats_total' in b) {
+      const want = Math.min(40, Math.max(1, parseInt(b.seats_total, 10) || 1));
+      const floor = before.seats_taken + (before.seats_held || 0);
       if (want < floor) {
-        return res.status(409).json({ error: `${floor} seat(s) are already spoken for. You cannot go below that.` });
+        return res.status(409).json({ error: `${floor} seat${floor === 1 ? ' is' : 's are'} already spoken for, so you cannot drop below ${floor}. Cancel someone first if you need fewer.` });
       }
       patch.seats_total = want;
     }
-    const [updated] = await sb(`slots?id=eq.${encodeURIComponent(req.params.id)}`, {
-      method: 'PATCH', body: JSON.stringify(patch),
-    });
-    // Adding seats, or re-publishing, can free something up for the line.
+
+    const [updated] = await sb(`slots?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+
+    // Work out what a guest would actually care about.
+    const fmtDur = (m) => `${m} minutes`;
+    const changes = [];
+    if (patch.starts_at && patch.starts_at !== before.starts_at) {
+      changes.push({ label: 'When', from: fmt(before.starts_at), to: fmt(patch.starts_at) });
+    }
+    if (patch.duration_minutes && patch.duration_minutes !== before.duration_minutes) {
+      changes.push({ label: 'Length', from: fmtDur(before.duration_minutes), to: fmtDur(patch.duration_minutes) });
+    }
+    if ('location' in patch && (patch.location || '') !== (before.location || '')) {
+      changes.push({ label: 'Where', from: before.location || 'To be confirmed', to: patch.location || 'To be confirmed' });
+    }
+
+    let notified = 0;
+    if (changes.length && b.notify_guests) {
+      const live = await sb(`bookings?select=*&slot_id=eq.${id}&status=eq.confirmed`).catch(() => []);
+      for (const bk of (live || [])) {
+        try {
+          await mail.eventChanged(bk, updated, bk.manage_token, changes);
+          if (bk.phone) {
+            sms.sendSMS(bk.phone, `Update from Tampa Bay Mahj — your ${updated.title || TYPE_LABEL[updated.slot_type]} is now ${fmt(updated.starts_at)}. Details: ${SITE_URL}/booking/${bk.manage_token}`).catch(() => {});
+          }
+          notified++;
+        } catch (e) { console.error('[booking] change notice failed:', e.message); }
+      }
+    }
+
     doSweep().catch(() => {});
-    res.json(updated);
+    res.json({ ...updated, changed: changes, notified });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 router.delete('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
   try {
