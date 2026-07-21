@@ -43,10 +43,18 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
 .invchip.open{background:rgba(63,125,78,.14);color:var(--green-ok)}
 .invchip.used{background:var(--cream-2);color:var(--ink-soft)}
 .invcopy{margin-left:auto;padding:7px 13px;border:1px solid var(--gold);border-radius:9px;background:#fff;color:var(--gold-dk);font-family:var(--body);font-weight:700;font-size:.78rem;cursor:pointer}
+  .steps{margin:4px 0 12px 18px;font-size:.86rem;line-height:1.65;color:var(--ink-soft)}
+  .steps li{margin-bottom:7px}
+  .steps b{color:var(--sage-dk)}
+  .perms{margin:5px 0 0 16px;list-style:disc}
+  .warn{display:block;color:#8C3F1E;font-size:.8rem;margin-top:3px}
+  .opt{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;background:var(--tile);
+    border:1px solid var(--tile-edge);color:var(--ink-soft);border-radius:999px;padding:3px 9px;
+    vertical-align:middle;font-weight:400}
 </style><script src="/theme.js"></script>
 </head>
 <body>
-<div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/settings" class="active">Settings</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout">Log out</a></div>
+<div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/settings" class="active">Settings</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout" aria-label="Log out">Log out</a></div>
 <div class="wrap">
   <h1>Settings</h1>
   <p class="sub">Connect Holly's tools. Keys are stored on your own server and never shown here again.</p>
@@ -73,9 +81,17 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel">
-    <h2>✉️ Email notifications</h2>
+    <h2>✉️ Email my guests</h2>
     <div id="mailStatus"></div>
-    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">Where booking and inquiry alerts get sent. Guests always get their own confirmation automatically.</p>
+    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 10px">
+      Sends confirmations to whoever books, and alerts to you. <b>Until this is on, nobody is emailed anything.</b></p>
+    <ol class="steps">
+      <li>Make a free account at <a href="https://resend.com" target="_blank" rel="noopener">resend.com</a>.</li>
+      <li>Open <b>Domains</b> and add the web address you own (like tampabaymahj.com), then follow their instructions to verify it.
+        <span class="warn">You need a domain you own. Without one, Resend will only deliver to your own address — not to your students.</span></li>
+      <li>Open <b>API Keys</b> → <b>Create API Key</b>, and paste it below.</li>
+      <li>Set the <b>from</b> address to something at your verified domain, then press <b>Send test email</b>.</li>
+    </ol>
     <label>Send my alerts to</label>
     <input id="notify_email" type="email" placeholder="hollymahj@outlook.com" autocomplete="email">
     <label>Resend API key</label>
@@ -87,18 +103,31 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel">
-    <h2>💳 Payments · Stripe</h2>
+    <h2>💳 Take payments</h2>
     <div id="stripeStatus"></div>
     <label>Stripe secret or restricted key</label>
     <input id="stripe_key" type="password" placeholder="sk_live_…  or  rk_live_…" autocomplete="off">
     <div class="btnrow"><button class="save" id="save">Save key</button><button class="test" id="test">Test connection</button><span class="msg" id="msg"></span></div>
-    <div class="note"><b>Tip:</b> create a <b>restricted key</b> with read-only access to <b>Balance</b> and <b>Charges</b> — that's all the dashboard needs, and it can't move money even if exposed. Get one at <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe → Developers → API keys</a>. Your key is stored server-side and never returned to this page.</div>
+    <ol class="steps">
+      <li>Go to <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe → Developers → API keys</a> and create a <b>restricted key</b>.</li>
+      <li>Set these three permissions exactly:
+        <ul class="perms">
+          <li><b>Charges</b> — Read</li>
+          <li><b>Balance</b> — Read</li>
+          <li><b>Checkout Sessions</b> — <b>Write</b> <span class="warn">Miss this one and paid events cannot take money.</span></li>
+        </ul>
+      </li>
+      <li>Paste the key above and press <b>Test connection</b>.</li>
+    </ol>
+    <div class="note">A restricted key cannot move your money even if it leaked. Your key is stored on the server and never shown on this page again.</div>
   </div>
 
   <div class="panel">
-    <h2>💬 Text messages · Twilio</h2>
+    <h2>💬 Text my guests <span class="opt">optional</span></h2>
     <div id="twStatus"></div>
-    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">Auto-texts booking &amp; request confirmations. From your Twilio console.</p>
+    <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">
+      Texts confirmations alongside the email. <b>Email works perfectly well without this</b> — add it when you want reminders too.
+      Expect roughly $3&ndash;4 a month plus about a penny per text, and a few days for carrier approval.</p>
     <label>Account SID</label><input id="tw_sid" placeholder="AC…" autocomplete="off">
     <label>Auth Token</label><input id="tw_token" type="password" placeholder="your auth token" autocomplete="off">
     <label>From number</label><input id="tw_from" placeholder="+18135551234">
@@ -110,14 +139,15 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Subscribe to this feed in Google, Apple, or Outlook Calendar — every open date appears automatically.</p>
     <label>Your private calendar feed</label>
     <div class="btnrow"><input id="cal_url" readonly style="flex:1;min-width:220px"><button class="test" id="cal_copy">Copy</button><span class="msg" id="cal_msg"></span></div>
-    <div class="note" style="margin-top:16px"><b>Two-way connect (later):</b> paste your Google / Microsoft OAuth app credentials to push events into those calendars. Safe to leave blank for now.
+    <details style="margin-top:16px"><summary style="cursor:pointer;font-size:.86rem;color:var(--ink-soft)">Advanced — two-way calendar sync</summary>
+    <div class="note" style="margin-top:10px"><b>Two-way connect (later):</b> paste your Google / Microsoft OAuth app credentials to push events into those calendars. Safe to leave blank for now.
       <label>Google client ID</label><input id="g_id" placeholder="…apps.googleusercontent.com" autocomplete="off">
       <label>Google client secret</label><input id="g_secret" type="password" placeholder="GOCSPX-…" autocomplete="off">
       <div class="btnrow"><button class="save" id="g_save">Save Google</button><span class="msg" id="g_msg"></span></div>
       <label style="margin-top:14px">Microsoft client ID</label><input id="m_id" autocomplete="off">
       <label>Microsoft client secret</label><input id="m_secret" type="password" autocomplete="off">
       <label>Microsoft tenant (optional)</label><input id="m_tenant" placeholder="common">
-      <div class="btnrow"><button class="save" id="m_save">Save Microsoft</button><span class="msg" id="m_msg"></span></div>
+      <div class="btnrow"><button class="save" id="m_save">Save Microsoft</button><span class="msg" id="m_msg"></span></div></details>
     </div>
   </div>
 </div>

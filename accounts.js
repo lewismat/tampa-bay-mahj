@@ -622,6 +622,64 @@ router.get('/students', page('students.html'));
 router.get('/inquiries', page('inquiries.html'));
 router.get('/card',     page('card.html'));
 router.get('/settings', page('settings.html'));
+// Forgot password. Tokens are signed rather than stored, so no migration is needed:
+// the account's current password hash is part of the signature, which makes a token
+// self-invalidating the moment the password changes.
+function resetToken(acct) {
+  const exp = Date.now() + 3600000;
+  const body = `${acct.id}.${exp}`;
+  const sig = crypto.createHmac('sha256', SECRET + String(acct.password_hash || '')).update(body).digest('hex');
+  return `${body}.${sig}`;
+}
+function checkResetToken(token, acct) {
+  const parts = String(token || '').split('.');
+  if (parts.length !== 3) return false;
+  const [id, exp, sig] = parts;
+  if (id !== acct.id) return false;
+  if (Date.now() > Number(exp)) return false;
+  const want = crypto.createHmac('sha256', SECRET + String(acct.password_hash || '')).update(`${id}.${exp}`).digest('hex');
+  return sig.length === want.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(want));
+}
+
+router.post('/api/auth/forgot', async (req, res) => {
+  const email = clean((req.body || {}).email, 160).toLowerCase();
+  // Always the same answer, so this cannot be used to discover who has an account.
+  const same = { ok: true, message: 'If that address has an account, a reset link is on its way.' };
+  try {
+    if (!email) return res.json(same);
+    const rows = await sb(`accounts?select=*&email=eq.${encodeURIComponent(email)}&limit=1`);
+    const acct = rows && rows[0];
+    if (!acct) return res.json(same);
+    const link = `${SITE_URL}/login?reset=${encodeURIComponent(resetToken(acct))}&who=${encodeURIComponent(acct.id)}`;
+    const out = await mail.ownerAlert(acct.email, 'Reset your Tampa Bay Mahj password', {
+      'Reset link': link,
+      'Good for': 'One hour, once.',
+      'Not you?': 'Ignore this and nothing changes.',
+    });
+    if (!out || !out.ok) console.error('[auth] reset email not sent to', email, out && (out.reason || out.error));
+    return res.json(same);
+  } catch (e) { console.error('[auth] forgot:', e.message); return res.json(same); }
+});
+
+router.post('/api/auth/reset', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const rows = await sb(`accounts?select=*&id=eq.${encodeURIComponent(clean(b.who, 60))}&limit=1`);
+    const acct = rows && rows[0];
+    if (!acct || !checkResetToken(b.token, acct)) {
+      return res.status(400).json({ ok: false, error: 'That reset link has expired or already been used. Ask for a new one.' });
+    }
+    if (!b.password || String(b.password).length < 8) {
+      return res.status(400).json({ ok: false, error: 'Pick a password of at least 8 characters.' });
+    }
+    await sb(`accounts?id=eq.${acct.id}`, {
+      method: 'PATCH', headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ password_hash: hashPassword(String(b.password)) }),
+    });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 router.get('/request',  (req, res) => res.redirect('/'));
 
 module.exports = router;

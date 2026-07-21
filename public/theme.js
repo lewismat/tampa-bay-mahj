@@ -9,3 +9,17 @@ function tbmApplyTheme(id){var t=window.TBM_THEMES[id]||window.TBM_THEMES.classi
 window.tbmSetTheme=function(id){try{localStorage.setItem('tbm_theme',id);}catch(e){}tbmApplyTheme(id);};
 window.tbmCurrentTheme=function(){try{return localStorage.getItem('tbm_theme')||'classic';}catch(e){return 'classic';}};
 tbmApplyTheme(window.tbmCurrentTheme());
+
+/* Accessibility pass — Holly's students skew older, so this is core audience.
+   Darkens muted text one step and gives every control a visible focus ring. */
+(function(){
+  var css = document.createElement('style');
+  css.textContent =
+    ':root{--ink-soft:#5E6B52;--sage-soft:#5A6A4B}' +
+    'a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,' +
+    'textarea:focus-visible,summary:focus-visible,[tabindex]:focus-visible{' +
+      'outline:3px solid #C9A24B;outline-offset:2px;border-radius:6px}' +
+    '@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;' +
+      'transition-duration:.01ms!important}}';
+  document.head.appendChild(css);
+})();

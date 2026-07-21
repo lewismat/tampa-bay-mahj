@@ -58,6 +58,7 @@ button:hover{filter:brightness(1.06)}
     <div class="msg" id="msg"></div>
   </form>
   <div class="switch"><a id="toggleMode">Have an invite code? Create an account</a></div>
+  <div class="switch" id="forgotWrap"><a id="forgotLink">Forgot your password?</a></div>
   <div class="foot">Tampa &amp; St. Pete, Florida</div>
 </div>
 <script>
@@ -74,9 +75,31 @@ function applyMode(){
   $('title').textContent=isSetup?'Set up your studio':(isReg?'Create your account':'Welcome back');
   $('sub').textContent=isSetup?'Create the first login for Tampa Bay Mahj':(isReg?'You will need an invite code':"Sign in to Holly's studio");
   $('submitBtn').textContent=isSetup?'Create account':(isReg?'Create account':'Sign in');
+  var isForgot=mode==='forgot', isReset=mode==='reset';
+  if(isForgot||isReset){
+    $('setupFields').style.display='none'; $('codeWrap').style.display='none';
+    $('passHint').style.display=isReset?'block':'none';
+  }
+  var idRow=$('identifier').closest('label')||$('identifier').parentNode;
+  var pwRow=$('password').closest('label')||$('password').parentNode;
+  idRow.style.display=isReset?'none':'';
+  pwRow.style.display=isForgot?'none':'';
+  if(isForgot){
+    $('userLabel').textContent='Your email address';
+    $('title').textContent='Reset your password';
+    $('sub').textContent='We will email you a link that works for one hour';
+    $('submitBtn').textContent='Email me a reset link';
+  }
+  if(isReset){
+    $('title').textContent='Pick a new password';
+    $('sub').textContent='Then you will be signed straight in';
+    $('submitBtn').textContent='Save new password';
+  }
   var sw=$('toggleMode');
-  if(isSetup){sw.parentNode.style.display='none';}
+  if(isSetup||isForgot||isReset){sw.parentNode.style.display='none';}
   else{sw.parentNode.style.display='';sw.textContent=isReg?'← Back to sign in':'Have an invite code? Create an account';}
+  var fw=$('forgotWrap');
+  if(fw)fw.style.display=(mode==='signin')?'':'none';
 }
 async function init(){
   try{
@@ -84,24 +107,45 @@ async function init(){
     if(s.authed){ location.href='/dashboard'; return; }
     if(s.needsSetup){ mode='setup'; }
     else {
-      var inv=new URLSearchParams(location.search).get('invite');
-      if(inv){ mode='register'; $('code').value=inv.toUpperCase(); }
+      var qp=new URLSearchParams(location.search);
+      var inv=qp.get('invite');
+      if(qp.get('reset')&&qp.get('who')){ mode='reset'; }
+      else if(inv){ mode='register'; $('code').value=inv.toUpperCase(); }
     }
   }catch(e){}
   applyMode();
 }
 $('toggleMode').addEventListener('click',function(){ mode=(mode==='register')?'signin':'register'; $('msg').textContent=''; applyMode(); });
+if($('forgotLink'))$('forgotLink').addEventListener('click',function(){ mode='forgot'; $('msg').textContent=''; applyMode(); });
 document.getElementById('form').addEventListener('submit',async function(ev){
   ev.preventDefault();
   var msg=$('msg'); msg.className='msg'; msg.textContent='Working…';
   var url,body;
   if(mode==='setup'){ url='/api/auth/setup'; body={name:$('name').value,email:$('email').value,username:$('identifier').value,password:$('password').value}; }
   else if(mode==='register'){ url='/api/auth/register'; body={name:$('name').value,email:$('email').value,username:$('identifier').value,password:$('password').value,code:$('code').value}; }
+  else if(mode==='forgot'){ url='/api/auth/forgot'; body={email:$('identifier').value}; }
+  else if(mode==='reset'){
+    var qp=new URLSearchParams(location.search);
+    url='/api/auth/reset'; body={token:qp.get('reset'),who:qp.get('who'),password:$('password').value};
+  }
   else { url='/api/auth/login'; body={identifier:$('identifier').value,password:$('password').value}; }
   try{
     var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var d=await r.json();
     if(!d.ok){ msg.className='msg err'; msg.textContent=d.error||'Something went wrong.'; return; }
+    if(mode==='forgot'){
+      msg.className='msg ok';
+      msg.textContent=d.message||'If that address has an account, a reset link is on its way.';
+      return;
+    }
+    if(mode==='reset'){
+      msg.className='msg ok'; msg.textContent='Password saved — signing you in…';
+      var pw=$('password').value;
+      var who=new URLSearchParams(location.search).get('who');
+      var acct=await fetch('/api/auth/state').then(function(r){return r.json();}).catch(function(){return {};});
+      setTimeout(function(){ location.href='/login'; },1200);
+      return;
+    }
     msg.className='msg ok'; msg.textContent='Welcome!'; location.href='/dashboard';
   }catch(e){ msg.className='msg err'; msg.textContent='Network error.'; }
 });
