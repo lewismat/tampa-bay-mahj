@@ -100,6 +100,24 @@
 .fbar .fn{display:block;font-family:'Cormorant Garamond',serif;font-weight:700;font-size:2.1rem;line-height:1}
 .fbar .fl{display:block;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700;margin-top:3px;opacity:.92}
 .fconv{text-align:center;color:#8A6D14;font-weight:700;font-size:.9rem;padding:7px 0}
+  #health{margin-bottom:26px}
+  .hpanel{background:var(--white);border:1px solid var(--gold-soft);border-left:4px solid var(--red);
+    border-radius:14px;padding:20px 22px;box-shadow:var(--shadow)}
+  .hpanel.allgood{border-left-color:var(--green)}
+  .hpanel h2{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:600;margin-bottom:3px}
+  .hpanel .hsub{color:var(--green-soft);font-size:.9rem;font-weight:300;margin-bottom:14px}
+  .hrow{display:flex;align-items:flex-start;gap:11px;padding:11px 0;border-top:1px solid #EFE7CC}
+  .hrow:first-of-type{border-top:none}
+  .hdot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:7px}
+  .hdot.on{background:var(--green)} .hdot.off{background:var(--red)} .hdot.idle{background:var(--gold-soft)}
+  .hbody{flex:1;min-width:0}
+  .hlabel{font-weight:500;font-size:.95rem}
+  .hmsg{font-size:.85rem;color:var(--green-soft);font-weight:300;line-height:1.5}
+  .hfix{border:1px solid var(--gold);background:var(--white);color:var(--green-dark);border-radius:8px;
+    padding:6px 13px;font:inherit;font-size:.8rem;cursor:pointer;text-decoration:none;white-space:nowrap;flex:none}
+  .hfix:hover{background:#FBF6E4}
+  .hdismiss{background:none;border:none;color:var(--green-soft);font:inherit;font-size:.8rem;
+    cursor:pointer;text-decoration:underline;margin-top:10px;padding:0}
 </style>
 <script src="/theme.js"></script>
 </head>
@@ -134,6 +152,8 @@
     </div>
     <div class="right">Inquiry form: <a href="/" target="_blank">open ↗</a></div>
   </header>
+
+  <div id="health"></div>
 
   <div class="cards">
     <div class="card"><div class="n" id="stVisits">–</div><div class="l">Form Visits</div></div>
@@ -222,6 +242,7 @@
       if (r.status === 401) { location.href='/login'; return; }
       document.getElementById('lock').style.display = 'none';
       var d = await r.json();
+      loadHealth();
       document.getElementById('stVisits').textContent = d.stats.totalVisits;
       document.getElementById('stUnique').textContent = d.stats.uniqueVisitors;
       document.getElementById('stInquiries').textContent = d.stats.totalInquiries;
@@ -392,5 +413,34 @@
 })();
 </script>
 <script src="/sidebar.js"></script>
+<script>
+async function loadHealth(){
+  var host=document.getElementById('health'); if(!host) return;
+  try{
+    var d=await fetch('/api/health').then(function(r){return r.json();});
+    if(!d.ok||!d.checks) return;
+    var broken=d.checks.filter(function(c){return c.state==='off';});
+    var esc=function(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+    if(!broken.length){
+      if(sessionStorage.getItem('hideHealth')==='1'){host.innerHTML='';return;}
+      host.innerHTML='<div class="hpanel allgood"><h2>Everything is working</h2>'+
+        '<div class="hsub">Payments, email and your calendar are all set. Nothing needs you right now.</div>'+
+        '<button class="hdismiss" id="hHide">Hide this</button></div>';
+      var hb=document.getElementById('hHide');
+      if(hb)hb.onclick=function(){sessionStorage.setItem('hideHealth','1');host.innerHTML='';};
+      return;
+    }
+    host.innerHTML='<div class="hpanel"><h2>'+broken.length+' thing'+(broken.length===1?'':'s')+' need'+(broken.length===1?'s':'')+' your attention</h2>'+
+      '<div class="hsub">These are switched off right now, so part of your booking flow is not working.</div>'+
+      d.checks.map(function(c){
+        var msg=c.state==='on'?c.good:c.bad;
+        return '<div class="hrow"><span class="hdot '+c.state+'"></span><div class="hbody">'+
+          '<div class="hlabel">'+esc(c.label)+'</div><div class="hmsg">'+esc(msg)+'</div></div>'+
+          (c.state==='on'?'':'<a class="hfix" href="'+esc(c.fix)+'">'+esc(c.fixLabel)+'</a>')+'</div>';
+      }).join('')+'</div>';
+  }catch(e){}
+}
+</script>
 </body>
 </html>

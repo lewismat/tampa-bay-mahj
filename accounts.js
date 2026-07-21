@@ -327,6 +327,46 @@ async function convertPaidLeads(emails) {
 }
 
 // Settings never leak the key back to the browser — only whether it's connected + a masked hint.
+// One honest answer to "is this thing actually working?" — used by the dashboard checklist.
+router.get('/api/health', requireAuth, async (req, res) => {
+  try {
+    const rows = await sb('settings?id=eq.app&limit=1').catch(() => []);
+    const s = (rows && rows[0]) || {};
+    const emailOn = await mail.configured();
+    const stripeKey = s.stripe_secret_key || '';
+    const twilioOn = !!(s.twilio_account_sid && s.twilio_auth_token && s.twilio_from);
+
+    let events = 0;
+    try {
+      const up = await sb(`slots?select=id&published=eq.true&starts_at=gte.${new Date().toISOString()}`);
+      events = (up || []).length;
+    } catch (e) { /* non-fatal */ }
+
+    res.json({ ok: true, checks: [
+      { key: 'email', label: 'Email confirmations',
+        state: emailOn ? 'on' : 'off',
+        good: 'Guests get a confirmation the moment they book.',
+        bad: 'Nobody is being emailed — not guests, not you. Nothing tells them their seat is real.',
+        fix: '/settings', fixLabel: 'Set up email' },
+      { key: 'stripe', label: 'Taking payments',
+        state: stripeKey ? 'on' : 'off',
+        good: 'Paid events can charge before the seat is held.',
+        bad: 'Paid events cannot take money yet, so nobody can register for one.',
+        fix: '/settings', fixLabel: 'Connect Stripe' },
+      { key: 'texts', label: 'Text messages',
+        state: twilioOn ? 'on' : 'idle',
+        good: 'Guests get a text alongside their email.',
+        bad: 'Optional — email still works on its own. Add Twilio when you want texts.',
+        fix: '/settings', fixLabel: 'Set up texts' },
+      { key: 'events', label: 'Something on the calendar',
+        state: events > 0 ? 'on' : 'off',
+        good: `${events} date${events === 1 ? '' : 's'} open for booking.`,
+        bad: 'Your booking page is empty, so there is nothing for anyone to sign up for.',
+        fix: '/schedule', fixLabel: 'Open a date' },
+    ] });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 router.get('/api/settings', requireAuth, async (req, res) => {
   try {
     const rows = await sb('settings?id=eq.app&limit=1');
