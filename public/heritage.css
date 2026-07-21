@@ -286,3 +286,19 @@ header .sub,.sub{color:var(--ink-soft)}
 @media(max-height:520px) and (orientation:landscape){
   #bookPv,#formPv{height:340px}
 }
+
+
+/* The tile rack is 14 tiles wide — fine on a desktop, 517px on a phone.
+   Let it wrap into two rows rather than dragging the page sideways. */
+@media(max-width:760px){
+  .rack-zone{max-width:100%;overflow:hidden}
+  .rack{
+    display:flex;flex-wrap:wrap;justify-content:center;
+    max-width:100%;gap:4px;padding:10px 11px 8px;
+  }
+  .rack .slot{width:26px;height:36px}
+}
+@media(max-width:420px){
+  .rack{gap:3px;padding:9px 9px 7px}
+  .rack .slot{width:22px;height:31px}
+}
