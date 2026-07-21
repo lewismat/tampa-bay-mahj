@@ -132,8 +132,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);bo
       <div class="field"><label for="dur">Length (minutes)</label><input id="dur" type="number" value="120" step="15" min="15"></div>
       <div class="field" id="seatfield" hidden><label for="seats">Seats</label><input id="seats" type="number" min="1" max="40" value="8" step="1"><div style="font-size:.72rem;color:var(--ink-soft);margin-top:3px">Total spots — e.g. 8 at one table, 16 at two.</div></div>
       <div class="field"><label for="loc">Where</label><input id="loc" placeholder="e.g. Carrollwood Country Club"></div>
+      <div class="field"><label for="rep">Repeat weekly</label>
+        <select id="rep"><option value="1">Just this date</option><option value="2">2 weeks</option>
+        <option value="4">4 weeks</option><option value="6">6 weeks</option><option value="8">8 weeks</option>
+        <option value="12">12 weeks</option></select></div>
       <div class="field"><label for="amt">Price per seat ($)</label><input id="amt" type="number" min="0" step="1" placeholder="0"><div class="hint">Leave blank or 0 for a free event. Any amount here means guests must pay before their seat is confirmed.</div></div>
-      <div class="field"><label for="price">Price note</label><input id="price" placeholder="e.g. includes cards &amp; tiles"></div>
+      <div class="field"><label for="price">Extra details</label><input id="price" placeholder="e.g. includes cards &amp; tiles"></div>
     </div>
     <div class="field" style="margin-top:12px"><label for="notes">Note shown to clients</label>
       <textarea id="notes" rows="2" placeholder="e.g. Beginners welcome — cards and tiles provided."></textarea></div>
@@ -368,6 +372,7 @@ async function load(){
           </div>
           <div class="btns">
             <button class="mini" data-edit="${s.id}">Edit</button>
+            <button class="mini" data-dup="${s.id}">Duplicate</button>
             <button class="mini" data-pub="${s.id}" data-val="${!s.published}">${s.published?'Hide':'Show'}</button>
             <button class="mini danger" data-del="${s.id}">Remove</button>
           </div>
@@ -408,6 +413,15 @@ async function load(){
     });
     el.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openEditor(b.dataset.edit));
     el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>openAdder(b.dataset.add));
+    el.querySelectorAll('[data-dup]').forEach(b=>b.onclick=async()=>{
+      b.disabled=true;b.textContent='Copying…';
+      const r=await fetch('/api/admin/slots/'+b.dataset.dup+'/duplicate',{method:'POST',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok){ b.disabled=false;b.textContent='Duplicate'; toast(d.error||'Could not copy that event.','bad'); return; }
+      toast('Copied to '+new Date(d.starts_at).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+' — edit it to change the date.');
+      load();refreshPreview();
+    });
     el.querySelectorAll('[data-cancelb]').forEach(b=>b.onclick=()=>cancelSeat(b.dataset.cancelb,b.dataset.nm));
     el.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
       if(!confirm('Remove this date from the booking page?')) return;
@@ -432,7 +446,7 @@ document.getElementById('add').onclick=async()=>{
       .formatToParts(local).find(p=>p.type==='timeZoneName').value.replace('GMT','')||'-04:00';
     const r=await fetch('/api/admin/slots',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({slot_type:v('type'),title:v('title'),starts_at:`${v('date')}T${v('time')}:00${offset}`,
-        duration_minutes:v('dur'),seats_total:v('seats'),location:v('loc'),price_note:v('price'),price_cents:Math.round((parseFloat(v('amt'))||0)*100),notes:v('notes')})});
+        duration_minutes:v('dur'),seats_total:v('seats'),location:v('loc'),price_note:v('price'),price_cents:Math.round((parseFloat(v('amt'))||0)*100),notes:v('notes'),repeat_weeks:parseInt(v('rep'),10)||1,confirm_free:window.__confirmFree||false})});
     const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Could not open that date.');
     ['loc','price','amt','notes'].forEach(id=>document.getElementById(id).value='');
@@ -444,6 +458,7 @@ load();
 var pvr=document.getElementById('pvRefresh');if(pvr)pvr.addEventListener('click',refreshPreview);
 var pvc=document.getElementById('pvCopy');if(pvc)pvc.addEventListener('click',function(){var url=location.origin+'/book';if(navigator.clipboard){navigator.clipboard.writeText(url);}else{var t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove();}var m=document.getElementById('pvCopyMsg');m.textContent='Copied '+url;setTimeout(function(){m.textContent='';},2500);});
 </script>
+<script src="/toast.js"></script>
 <script src="/sidebar.js"></script>
 </body>
 </html>

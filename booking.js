@@ -272,6 +272,19 @@ function validate(p, slot_id) {
   return null;
 }
 
+// "$75 per person" typed into the note with the price left blank makes a free event
+// that looks priced. Catch it rather than silently losing the money.
+function priceTrap(note, cents) {
+  if (cents > 0) return null;
+  const m = String(note || '').match(/\$\s?(\d[\d,]*(?:\.\d{2})?)/);
+  if (!m) return null;
+  return {
+    error: `Your note says $${m[1]} but the price per seat is blank, so this event would be free. ` +
+           `Set the price to ${m[1]}, or clear the amount from the note if it really is free.`,
+    suggested_cents: Math.round(parseFloat(m[1].replace(/,/g, '')) * 100),
+  };
+}
+
 // Turn an approved (free or paid) request into a real seat + notifications.
 async function finalizeBooking(slot_id, seats, payload, paidCents) {
   const result = await sb('rpc/book_slot', {
@@ -648,6 +661,26 @@ router.get('/booking/:token/google', async (req, res) => {
   }
 });
 
+// Copy an event to a new date, without its guests.
+router.post('/api/admin/slots/:id/duplicate', auth.requireAuth, async (req, res) => {
+  try {
+    const [src] = await sb(`slots?select=*&id=eq.${encodeURIComponent(req.params.id)}`);
+    if (!src) return res.status(404).json({ error: 'That event is no longer here.' });
+    const when = req.body && req.body.starts_at ? new Date(req.body.starts_at) : new Date(new Date(src.starts_at).getTime() + 7 * 864e5);
+    if (isNaN(when)) return res.status(400).json({ error: 'That date did not make sense.' });
+    const [copy] = await sb('slots', {
+      method: 'POST',
+      body: JSON.stringify({
+        slot_type: src.slot_type, title: src.title, price_cents: src.price_cents,
+        starts_at: when.toISOString(), duration_minutes: src.duration_minutes,
+        location: src.location, seats_total: src.seats_total,
+        price_note: src.price_note, notes: src.notes, published: true,
+      }),
+    });
+    res.json(copy);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Holly adds someone who paid cash, Venmo'd her, or just texted.
 router.post('/api/admin/slots/:id/attendee', auth.requireAuth, async (req, res) => {
   try {
@@ -738,23 +771,36 @@ router.post('/api/admin/slots', auth.requireAuth, async (req, res) => {
     if (!TYPE_LABEL[b.slot_type]) return res.status(400).json({ error: 'Pick what kind of session this is.' });
     if (!b.starts_at || isNaN(new Date(b.starts_at))) return res.status(400).json({ error: 'Pick a date and time.' });
 
+    const cents = Math.max(0, Math.min(500000, parseInt(b.price_cents, 10) || 0));
+    const note = clean(b.price_note, 120) || null;
+    const trap = priceTrap(note, cents);
+    if (trap && !b.confirm_free) {
+      return res.status(400).json({ error: trap.error, price_trap: true, suggested_cents: trap.suggested_cents });
+    }
+
     const exclusive = b.slot_type !== 'group_class';
-    const [created] = await sb('slots', {
-      method: 'POST',
-      body: JSON.stringify({
-        slot_type: b.slot_type,
-        title: clean(b.title, 120) || null,
-        price_cents: Math.max(0, Math.min(500000, parseInt(b.price_cents, 10) || 0)),
-        starts_at: new Date(b.starts_at).toISOString(),
-        duration_minutes: Math.min(600, Math.max(15, parseInt(b.duration_minutes, 10) || 120)),
-        location: clean(b.location, 200) || null,
-        seats_total: exclusive ? 1 : Math.min(40, Math.max(1, parseInt(b.seats_total, 10) || 8)),
-        price_note: clean(b.price_note, 120) || null,
-        notes: clean(b.notes, 1000) || null,
-        published: b.published !== false,
-      }),
-    });
-    res.json(created);
+    const base = {
+      slot_type: b.slot_type,
+      title: clean(b.title, 120) || null,
+      price_cents: cents,
+      duration_minutes: Math.min(600, Math.max(15, parseInt(b.duration_minutes, 10) || 120)),
+      location: clean(b.location, 200) || null,
+      seats_total: exclusive ? 1 : Math.min(40, Math.max(1, parseInt(b.seats_total, 10) || 8)),
+      price_note: note,
+      notes: clean(b.notes, 1000) || null,
+      published: b.published !== false,
+    };
+
+    // Repeat weekly — a Tuesday class should not be typed out eight times.
+    const weeks = Math.min(52, Math.max(1, parseInt(b.repeat_weeks, 10) || 1));
+    const rows = [];
+    for (let i = 0; i < weeks; i++) {
+      const d = new Date(b.starts_at);
+      d.setDate(d.getDate() + i * 7);
+      rows.push({ ...base, starts_at: d.toISOString() });
+    }
+    const created = await sb('slots', { method: 'POST', body: JSON.stringify(rows) });
+    res.json({ ...(created[0] || {}), created_count: created.length });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -791,6 +837,13 @@ router.patch('/api/admin/slots/:id', auth.requireAuth, async (req, res) => {
         return res.status(409).json({ error: `${floor} seat${floor === 1 ? ' is' : 's are'} already spoken for, so you cannot drop below ${floor}. Cancel someone first if you need fewer.` });
       }
       patch.seats_total = want;
+    }
+
+    const trapNote = 'price_note' in patch ? patch.price_note : before.price_note;
+    const trapCents = 'price_cents' in patch ? patch.price_cents : before.price_cents;
+    const trap = priceTrap(trapNote, trapCents);
+    if (trap && !b.confirm_free) {
+      return res.status(400).json({ error: trap.error, price_trap: true, suggested_cents: trap.suggested_cents });
     }
 
     const [updated] = await sb(`slots?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(patch) });

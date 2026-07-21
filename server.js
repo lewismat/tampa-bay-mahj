@@ -110,10 +110,16 @@ async function createLeadFromInquiry(q) {
     }
     await sb('POST', 'students', {
       first_name: q.firstName, last_name: q.lastName, email, phone: q.phone,
-      status: 'lead', tags: 'lead', source: 'website inquiry',
-      notes: (q.eventType || '') + (q.eventDate ? ' — ' + q.eventDate : ''),
+      status: 'lead', tags: 'inquiry form', source: 'website inquiry',
+      notes: 'Asked about: ' + (q.eventType || 'a lesson') +
+             (q.eventDate ? ' on ' + q.eventDate : '') +
+             (q.guestCount ? ' · ' + q.guestCount + ' guests' : '') +
+             (q.aboutEvent ? ' — "' + String(q.aboutEvent).slice(0, 300) + '"' : ''),
     });
-  } catch (e) { console.error('lead-from-inquiry:', e.message); }
+  } catch (e) {
+    // Loud on purpose: a lost lead is a lost customer.
+    console.error('[LEAD NOT CREATED] inquiry from', q.email, '->', e.message);
+  }
 }
 
 // ---------- email notification (fire and forget) ----------
@@ -246,6 +252,9 @@ app.post('/api/inquiries', async (req, res) => {
     };
     const id = await store.addInquiry(inquiry);
     notifyEmail(inquiry);
+    // Every inquiry is a lead. This was defined but never called, so eight
+    // inquiries produced zero leads before anyone noticed.
+    await createLeadFromInquiry(inquiry);
     sendJSON(res, 200, { ok: true, id });
   } catch (e) { console.error('inquiry:', e.message); sendJSON(res, 400, { ok: false, error: 'Invalid submission' }); }
 });
