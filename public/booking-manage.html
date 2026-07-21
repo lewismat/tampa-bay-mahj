@@ -73,11 +73,11 @@ function draw(b){
   `;
   const btn=document.getElementById('cx');
   if(btn) btn.onclick=async()=>{
-    if(!confirm('Cancel this booking? Your seat goes back on the calendar.')) return;
+    if(!confirm('Cancel this booking? Your seat goes back on the calendar, and Holly is told.')) return;
     btn.disabled=true;btn.textContent='Cancelling…';
     const r=await fetch('/api/booking/'+token+'/cancel',{method:'POST'});
     if(r.ok) draw({...b,status:'cancelled'});
-    else { btn.disabled=false;btn.textContent='Cancel booking';alert('Could not cancel. Please text Holly.'); }
+    else { btn.disabled=false;btn.textContent='Cancel booking';toast('We could not cancel that. Please text Holly and she will take care of it.','bad'); }
   };
 }
 </script>

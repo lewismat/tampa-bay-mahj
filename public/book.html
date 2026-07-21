@@ -382,7 +382,7 @@ function renderPanel(map){
         <span class="right">
           ${s.price_cents?`<div class="price">$${(s.price_cents/100).toFixed(2)}<span class="pp"> / seat</span></div>`:''}${s.price_note?`<div class="pricenote">${esc(s.price_note)}</div>`:''}
           ${s.seats_left?seatMap(s):`<div class="seatsleft">${
-            s.waiting?`${s.waiting} waiting · join the list`:'Join the waitlist'}</div>`}
+            s.waiting?`${s.waiting} waiting · seats open often`:'Full — join the list'}</div>`}
         </span>
       </button>`).join('')}</div>
     <div id="formhost"></div>
@@ -404,13 +404,16 @@ function renderForm(s){
   const day=longDate(selDay).replace(/^\w+, /,'');
 
   document.getElementById('formhost').innerHTML=`<div class="form">
-    ${waiting?`<div class="waitnote"><strong>This one is full.</strong> Get on the list and if
-      someone cancels we will email you and hold the seat for 24 hours — first come, first
-      served down the line.${s.waiting?` ${s.waiting} ${s.waiting===1?'person is':'people are'} ahead of you.`:''}</div>`:''}
+    ${waiting?`<div class="waitnote"><strong>This one filled up — but seats open often.</strong>
+      Join the list and the moment someone cancels we email you and <b>hold the seat for 24 hours</b>,
+      so you are not racing anyone.${s.waiting?` ${s.waiting} ${s.waiting===1?'person is':'people are'} ahead of you right now.`:''}
+      It costs nothing to be on it.</div>`:''}
     ${(!waiting&&s.price_cents)?`<div class="paynote">
       <span class="amt">$${(s.price_cents/100).toFixed(2)} per seat</span>
-      Payment is required to hold your seat. Choosing your details below takes you to a secure
-      Stripe checkout — your spot is confirmed the moment the payment goes through.
+      Payment holds your seat. When you press the button below you will go to <b>Stripe</b>,
+      the same secure checkout used by millions of small businesses — Holly never sees your card
+      number. You come straight back here afterwards and your seat is confirmed on the spot.
+      Need to cancel? Use the link in your confirmation email and text Holly about a refund.
       <span class="sec" id="totline"></span></div>`:''}
     <div class="grid">
       <div class="field"><label for="fn">First name <span style="color:#B3542E">*</span></label><input id="fn" autocomplete="given-name"></div>
@@ -420,7 +423,9 @@ function renderForm(s){
       ${isClass?`<div class="field full"><label for="seats">How many of you${waiting?' would be coming':' are coming'}?</label>
         <select id="seats">${seatOpts}</select></div>`:''}
       ${isParty&&!waiting?`
-      <div class="field full"><label for="addr">Where is it? Street address</label><input id="addr" autocomplete="street-address"></div>
+      <div class="field full"><p style="font-size:.8rem;color:var(--sage-soft);margin:2px 0 0">
+        Where the party is — if you are still deciding, leave these blank and tell Holly later.</p></div>
+      <div class="field full"><label for="addr">Street address</label><input id="addr" autocomplete="street-address"></div>
       <div class="field"><label for="city">City</label><input id="city" autocomplete="address-level2"></div>
       <div class="field"><label for="state">State</label><input id="state" value="FL" autocomplete="address-level1"></div>
       <div class="field"><label for="zip">ZIP</label><input id="zip" inputmode="numeric" autocomplete="postal-code"></div>

@@ -325,13 +325,14 @@ async function saveAdder(id){
 }
 
 async function cancelSeat(bookingId,name){
-  const tell=confirm('Cancel '+name+"'s seat?\n\nOK = cancel and email them.\nCancel = go back (nothing happens).");
-  if(!tell) return;
-  const r=await fetch('/api/admin/bookings/'+bookingId+'/cancel',{method:'POST',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify({tell_them:true})});
-  const out=await r.json().catch(()=>({}));
-  if(!r.ok){ alert(out.error||'Could not cancel that seat.'); return; }
-  load();refreshPreview();
+  undoable('Cancelling '+name+"'s seat and emailing them.",async function(){
+    const r=await fetch('/api/admin/bookings/'+bookingId+'/cancel',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({tell_them:true})});
+    const out=await r.json().catch(function(){return {};});
+    if(!r.ok){ toast(out.error||'Could not cancel that seat.','bad'); return; }
+    toast(name+"'s seat is free again"+(out.emailed?' — they were emailed.':". They were NOT emailed, so let them know."));
+    load();refreshPreview();
+  });
 }
 
 async function load(){
@@ -424,11 +425,14 @@ async function load(){
     });
     el.querySelectorAll('[data-cancelb]').forEach(b=>b.onclick=()=>cancelSeat(b.dataset.cancelb,b.dataset.nm));
     el.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
-      if(!confirm('Remove this date from the booking page?')) return;
-      const r=await fetch('/api/admin/slots/'+b.dataset.del,{method:'DELETE'});
-      const d=await r.json();
-      if(!r.ok) alert(d.error||'Could not remove that.');
-      load();refreshPreview();
+      const id=b.dataset.del;
+      undoable('Removing this date from your booking page.',async function(){
+        const r=await fetch('/api/admin/slots/'+id,{method:'DELETE'});
+        const d=await r.json().catch(function(){return {};});
+        if(!r.ok){ toast(d.error||'Could not remove that date.','bad'); load(); return; }
+        toast('Date removed.');
+        load();refreshPreview();
+      });
     });
   }catch(e){ el.innerHTML=`<p class="empty">${esc(e.message)}</p>`; }
 }

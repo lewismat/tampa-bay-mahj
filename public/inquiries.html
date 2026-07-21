@@ -114,9 +114,13 @@ function renderPresets(){
   };});
   el.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){
     var p=PRESETS.filter(function(x){return x.id===b.dataset.rm;})[0];
-    if(!p||!confirm('Delete “'+p.name+'”? This does not change how your form looks right now.'))return;
+    if(!p)return;
+    var keep=PRESETS.slice();
     PRESETS=PRESETS.filter(function(x){return x.id!==b.dataset.rm;});
-    renderPresets(); saveConfig('c_msg2');
+    renderPresets();
+    undoable('Deleting “'+p.name+'”. Your form still looks the same.',function(){
+      saveConfig('c_msg2');
+    },{onUndo:function(){PRESETS=keep;renderPresets();}});
   };});
 }
 async function guard(){var s=await fetch('/api/auth/state').then(r=>r.json());if(!s.authed){location.href='/login';return false;}return true;}

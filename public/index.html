@@ -385,7 +385,7 @@
       window.scrollTo({top:0, behavior:'smooth'});
     } catch(err){
       btn.disabled = false; btn.textContent = 'Declare Mahjong 🀄';
-      alert('Hmm, something went wrong sending your inquiry. Please try again.');
+      toast('That did not send — please check your connection and try again. If it keeps happening, email Holly directly.','bad');
     }
   });
 })();
