@@ -41,7 +41,7 @@ h1{letter-spacing:.02em}
 label{color:var(--ink-soft)}
 
 /* ---------- surfaces ---------- */
-.card,.panel,.slot,.tile,.hpanel,.editpanel,.preset,.notelog,.form,.guests,.addform{
+.card,.panel,.slot,.hpanel,.editpanel,.preset,.notelog,.form,.guests,.addform{
   border-radius:10px;
   border-color:var(--tile-edge);
   box-shadow:var(--paper);
@@ -162,3 +162,37 @@ input:focus,select:focus,textarea:focus{
 
 /* ---------- numbers deserve the serif ---------- */
 .card .n,.n{font-variant-numeric:oldstyle-nums;letter-spacing:.01em}
+
+
+/* ---------- public calendar: mount it on paper ----------
+   The yellow stripe is Holly's, so rather than fight it, the calendar
+   sits on a parchment mat the way a print sits inside a mount. */
+.wall{
+  background:linear-gradient(180deg,#FEFCF6,var(--tile));
+  border:1px solid var(--tile-edge);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:var(--paper);
+}
+.cell.closed{ background:rgba(227,218,196,.34)!important; }
+.cell.closed span{ opacity:.7 }
+.tileface{
+  background:linear-gradient(180deg,#FFFDF7,var(--tile))!important;
+  border-color:var(--tile-edge)!important;
+  border-bottom-color:var(--gold-soft)!important;
+  box-shadow:0 2px 6px rgba(24,58,42,.14)!important;
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease);
+}
+.tile:hover .tileface{
+  transform:translateY(-2px);
+  border-bottom-color:var(--gold)!important;
+  box-shadow:0 8px 18px rgba(24,58,42,.18)!important;
+}
+.dow,.wall .dow{letter-spacing:.14em;font-size:.64rem;color:var(--ink-soft)}
+
+/* ---------- guest-facing forms sit on paper too ---------- */
+.panel,.form,.success,.waitnote,.paynote{background-color:var(--tile)}
+.waitnote{border-left:3px solid var(--gold)}
+
+/* ---------- header rule under the wordmark ---------- */
+header .sub,.sub{color:var(--ink-soft)}
