@@ -186,7 +186,7 @@
   <h2>Inquiries</h2>
   <div class="inqfilter">
     <input id="inqSearch" placeholder="Search name, email, event…">
-    <select id="inqStatus"><option value="">All statuses</option><option value="new">New</option><option value="contacted">Contacted</option><option value="booked">Booked</option><option value="archived">Archived</option></select>
+    <select id="inqStatus"><option value="">Active (hides archived)</option><option value="new">New</option><option value="contacted">Contacted</option><option value="booked">Booked</option><option value="archived">Archived</option></select>
     <input type="date" id="inqFrom" title="From date"><input type="date" id="inqTo" title="To date">
     <button id="inqClear" type="button" style="padding:9px 14px;border:1px solid #DED3B4;border-radius:9px;background:#fff;color:#5D6656;font-family:'Karla',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer">Clear</button>
   </div>
@@ -380,6 +380,8 @@
     Array.prototype.forEach.call(body.querySelectorAll('tr.row'),function(row){
       var txt=row.textContent.toLowerCase();var s=row.getAttribute('data-status')||'';var dt=(row.getAttribute('data-date')||'').slice(0,10);
       var ok=(!q||txt.indexOf(q)>-1)&&(!status||s===status);
+      // Archived rows only appear when explicitly asked for.
+      if(ok&&s==='archived'&&status!=='archived')ok=false;
       if(ok&&from)ok=dt>=from;
       if(ok&&to)ok=dt<=to;
       if(ok&&!active)ok=shown<10;   // default: latest 10
