@@ -196,3 +196,93 @@ input:focus,select:focus,textarea:focus{
 
 /* ---------- header rule under the wordmark ---------- */
 header .sub,.sub{color:var(--ink-soft)}
+
+/* ============================================================
+   Mobile — the shared view layer handles this once for every page,
+   so no page carries its own copy of these rules.
+   ============================================================ */
+
+/* Any scroll container must be allowed to be narrower than its content.
+   Without this, a table with min-width drags the whole page wide. */
+.sched-main,.wrap,.card,.panel,main{max-width:100%;min-width:0}
+#attList,.tablewrap,.scrollx{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+@media(max-width:760px){
+  /* ---- breathing room shrinks, but stays generous ---- */
+  .wrap{padding:16px 13px 64px}
+  .card,.panel,.hpanel{padding:18px 16px}
+  .panel::before,.hpanel::before{margin:-18px -16px 15px}
+
+  h1{font-size:1.75rem}
+  h2,h2.page{font-size:1.32rem}
+  body{font-size:16px}
+
+  /* ---- every multi-column grid becomes one column ---- */
+  .grid,.edgrid,.cards,.gallery{grid-template-columns:1fr!important}
+  .edgrid .edfull{grid-column:1/-1}
+
+  /* ---- toolbars and button rows wrap instead of overflowing ---- */
+  .toolbar,.filters,.btns,.edrow,.edrow2,.btnrow,.namerow,.devrow,.dactions,.addwrap{
+    flex-wrap:wrap;gap:8px;
+  }
+  .toolbar>*,.btnrow>*{flex:1 1 auto;min-width:0}
+  .search,.toolbar input,.toolbar select{width:100%}
+  .filters{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* ---- comfortable touch targets (Apple's 44px) ---- */
+  button,.btn,.mini,.fbtn,.save,.addbtn,.hfix,a.btn{
+    min-height:42px;padding-top:9px;padding-bottom:9px;
+  }
+  .mini,.fbtn{font-size:.84rem}
+
+  /* iOS zooms the page if an input is under 16px. Never let it. */
+  input,select,textarea{font-size:16px}
+
+  /* ---- tables: scroll sideways, keep the name column anchored ---- */
+  table{font-size:.88rem}
+  th,td{padding:11px 12px!important}
+  .tablewrap table,#attList table{min-width:600px}
+  .tablewrap td:first-child,.tablewrap th:first-child{
+    position:sticky;left:0;z-index:2;
+    background:linear-gradient(90deg,#FDFBF4 88%,rgba(253,251,244,0));
+  }
+  .tablewrap th:first-child{background:var(--sage)}
+  /* a hint that there is more to the right */
+  .tablewrap{
+    background-image:linear-gradient(90deg,transparent,rgba(24,58,42,.07));
+    background-position:right;background-size:22px 100%;background-repeat:no-repeat;
+  }
+
+  /* ---- previews stack under the thing they preview ---- */
+  .sched-preview,.prev,aside.prev{width:100%!important;position:static!important;margin-top:20px}
+  #bookPv{height:520px}
+  #formPv{height:520px;width:100%!important}
+  #formPv.phone{width:100%!important}
+
+  /* ---- the public calendar ---- */
+  .wall{padding:9px;gap:4px}
+  .cell{min-height:46px}
+  .tileface .num{font-size:.95rem}
+  .wall .dow{font-size:.56rem;letter-spacing:.06em}
+
+  /* ---- toasts sit above the thumb, full width ---- */
+  #tbmToasts{bottom:14px;width:calc(100vw - 20px)}
+  .tbmT{font-size:.88rem;padding:12px 13px}
+
+  /* ---- the event editor ---- */
+  .editpanel{padding:14px 13px}
+  .guest{font-size:.88rem}
+  .rmguest{margin-left:0;margin-top:6px;display:inline-block}
+}
+
+/* very small phones */
+@media(max-width:380px){
+  .wrap{padding:14px 10px 56px}
+  h1{font-size:1.55rem}
+  .chip,.pill,.badge{font-size:.58rem;padding:3px 8px}
+}
+
+/* landscape phones: reclaim vertical space */
+@media(max-height:520px) and (orientation:landscape){
+  #bookPv,#formPv{height:340px}
+}
