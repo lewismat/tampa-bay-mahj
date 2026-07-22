@@ -82,7 +82,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <div class="set-body">
 
   <div class="panel" data-cat="business">
-    <h2>🏵️ Business profile</h2>
+    <h2>Business profile</h2>
     <p style="color:var(--ink-soft);font-size:.88rem;font-weight:300;margin:2px 0 12px">Your logo and name show up on your booking page, inquiry form, dashboard and confirmations.</p>
     <label>Business name</label>
     <input id="biz_name" placeholder="Tampa Bay Mahj" autocomplete="off">
@@ -101,13 +101,13 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel" data-cat="appearance">
-    <h2>🎨 Appearance</h2>
+    <h2>Appearance</h2>
     <p style="color:var(--ink-soft);font-size:.88rem;font-weight:300;margin:2px 0 6px">Pick a color theme for your workspace.</p>
     <div class="swatches" id="swatches"></div>
   </div>
 
   <div class="panel" data-cat="account">
-    <h2>🔒 Account · Password</h2>
+    <h2>Account · Password</h2>
     <label>Current password</label><input id="pw_cur" type="password" autocomplete="current-password">
     <label>New password</label><input id="pw_new" type="password" autocomplete="new-password">
     <label>Confirm new password</label><input id="pw_conf" type="password" autocomplete="new-password">
@@ -115,14 +115,14 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel" data-cat="team">
-    <h2>👥 Team &amp; invites</h2>
+    <h2>Team &amp; invites</h2>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Sign-up is invite-only. Share a code and that person can create their own account — each code works once.</p>
     <div class="btnrow"><button class="save" id="inv_new">Generate invite code</button><span class="msg" id="inv_msg"></span></div>
     <div id="inv_list" style="margin-top:14px"></div>
   </div>
 
   <div class="panel" data-cat="email">
-    <h2>✉️ Email my guests</h2>
+    <h2>Email my guests</h2>
     <div id="mailStatus"></div>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 10px">
       Sends confirmations to whoever books, and alerts to you. <b>Until this is on, nobody is emailed anything.</b></p>
@@ -144,7 +144,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel" data-cat="payments">
-    <h2>💳 Take payments</h2>
+    <h2>Take payments</h2>
     <div id="stripeStatus"></div>
     <label>Stripe secret or restricted key</label>
     <input id="stripe_key" type="password" placeholder="sk_live_…  or  rk_live_…" autocomplete="off">
@@ -164,7 +164,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel" data-cat="texts">
-    <h2>💬 Text my guests <span class="opt">optional</span></h2>
+    <h2>Text my guests <span class="opt">optional</span></h2>
     <div id="twStatus"></div>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">
       Texts confirmations alongside the email. <b>Email works perfectly well without this</b> — add it when you want reminders too.
@@ -176,7 +176,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   </div>
 
   <div class="panel" data-cat="calendar">
-    <h2>📅 Calendar</h2>
+    <h2>Calendar</h2>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Subscribe to this feed in Google, Apple, or Outlook Calendar — every open date appears automatically.</p>
     <label>Your private calendar feed</label>
     <div class="btnrow"><input id="cal_url" readonly style="flex:1;min-width:220px"><button class="test" id="cal_copy">Copy</button><span class="msg" id="cal_msg"></span></div>
@@ -315,9 +315,9 @@ $('inv_new').addEventListener('click',async function(){
 <script>
 (function(){
   var CATS=[
-    ['business','🏵️ Business'],['appearance','🎨 Appearance'],['account','🔒 Account'],
-    ['payments','💳 Payments'],['email','✉️ Email'],['texts','💬 Texts'],
-    ['calendar','📅 Calendar'],['team','👥 Team']
+    ['business','Business'],['appearance','Appearance'],['account','Account'],
+    ['payments','Payments'],['email','Email'],['texts','Texts'],
+    ['calendar','Calendar'],['team','Team']
   ];
   var nav=document.getElementById('setNav');
   function show(cat){
