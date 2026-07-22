@@ -78,10 +78,10 @@
   header .right{margin-left:0;width:100%;order:3}
 
   /* stat cards two-up, revenue cards full width */
-  .cards{grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+  .wrap .cards{grid-template-columns:1fr 1fr !important;gap:12px;margin-bottom:24px}
   .card{padding:16px}
   .card .n{font-size:1.7rem}
-  #revcards{grid-template-columns:1fr}
+  .wrap #revcards{grid-template-columns:1fr !important}
 
   /* tables scroll sideways instead of clipping the Status column */
   .panel{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
