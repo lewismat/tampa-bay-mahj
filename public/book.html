@@ -215,6 +215,50 @@ textarea{resize:vertical;min-height:78px}
   <link rel="stylesheet" href="/heritage.css">
 </head>
 <body>
+
+<div id="tbmLoader">
+  <div class="tbmLoad-in">
+    <img src="/logo.png" alt="Tampa Bay Mahj"
+      onerror="this.style.display='none'">
+    <div class="tbmDots"><span></span><span></span><span></span></div>
+  </div>
+</div>
+<style>
+#tbmLoader{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:repeating-linear-gradient(90deg,#FBF7EC 0 26px,#F6EEBA 26px 52px);
+  transition:opacity .5s ease}
+#tbmLoader.tbm-gone{opacity:0;pointer-events:none}
+#tbmLoader .tbmLoad-in{text-align:center;transform:translateY(-4%)}
+#tbmLoader img{width:140px;height:auto;filter:drop-shadow(0 8px 22px rgba(59,92,65,.18));
+  animation:tbmBreathe 2.6s ease-in-out infinite}
+#tbmLoader .tbmDots{margin-top:22px;display:flex;gap:9px;justify-content:center}
+#tbmLoader .tbmDots span{width:10px;height:10px;border-radius:50%;background:#3B5C41;
+  animation:tbmDot 1.2s ease-in-out infinite}
+#tbmLoader .tbmDots span:nth-child(2){animation-delay:.18s}
+#tbmLoader .tbmDots span:nth-child(3){animation-delay:.36s}
+@keyframes tbmDot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-7px)}}
+@keyframes tbmBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@media(prefers-reduced-motion:reduce){
+  #tbmLoader img,#tbmLoader .tbmDots span{animation:none}
+}
+</style>
+<script>
+(function(){
+  function hide(){
+    var l=document.getElementById('tbmLoader');
+    if(!l||l.classList.contains('tbm-gone'))return;
+    l.classList.add('tbm-gone');
+    setTimeout(function(){ if(l&&l.parentNode) l.parentNode.removeChild(l); },600);
+  }
+  // hide once everything is in, with a graceful minimum so it never just flashes
+  if(document.readyState==='complete'){ setTimeout(hide,400); }
+  else { window.addEventListener('load',function(){ setTimeout(hide,400); }); }
+  // failsafe: never trap the visitor behind the loader
+  setTimeout(hide,9000);
+  window.tbmHideLoader=hide;
+})();
+</script>
+
 <div class="wrap">
   <header>
     <img src="/logo.png" alt="Tampa Bay Mahj"
