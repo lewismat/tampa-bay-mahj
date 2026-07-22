@@ -91,7 +91,8 @@
   /* filters stack and go full width */
   .inqfilter{gap:8px}
   .inqfilter input,.inqfilter select{flex:1 1 100%;min-width:0;font-size:16px}
-  .inqfilter input[type=date]{flex:1 1 46%}
+  .inqfilter .datelab{flex:1 1 46%}
+  .inqfilter .datelab input{flex:1;min-width:0;font-size:16px}
   .inqfilter button{flex:1 1 100%}
 
   /* upcoming events: let the row breathe instead of forcing a wide date column */
@@ -123,7 +124,11 @@
 .ev-att{font-size:.88rem;color:#5D6656;padding:3px 0}
 .ev-att b{color:#3B4832;font-family:'Cormorant Garamond',serif;font-size:1rem}
 .ev-att.muted{font-style:italic}
-.inqfilter{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+.inqfilter{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px;align-items:center}
+  .datelab{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:#5D6656;
+    font-family:'Karla',sans-serif;font-weight:600;letter-spacing:.02em}
+  .datelab input{font-weight:400}
+  #evCustom{display:inline-flex;gap:10px;flex-wrap:wrap;align-items:center}
 .inqfilter input,.inqfilter select{padding:9px 12px;border:1px solid #DED3B4;border-radius:9px;background:#fff;font-family:'Karla',sans-serif;font-size:.9rem;color:#3B4832}
 .inqfilter input{flex:1;min-width:200px}
 .funnel{margin:22px 0 8px}
@@ -215,7 +220,7 @@
       <option value="1y">This year</option>
       <option value="custom">Custom…</option>
     </select>
-    <span id="evCustom"><input type="date" id="evFrom"><input type="date" id="evTo"></span>
+    <span id="evCustom"><label class="datelab">From <input type="date" id="evFrom"></label><label class="datelab">To <input type="date" id="evTo"></label></span>
   </div>
   <div class="panel"><div id="evList">Loading…</div></div>
 
@@ -223,7 +228,7 @@
   <div class="inqfilter">
     <input id="inqSearch" placeholder="Search name, email, event…">
     <select id="inqStatus"><option value="">Active (hides archived)</option><option value="new">New</option><option value="contacted">Contacted</option><option value="booked">Booked</option><option value="archived">Archived</option></select>
-    <input type="date" id="inqFrom" title="From date"><input type="date" id="inqTo" title="To date">
+    <label class="datelab">From <input type="date" id="inqFrom"></label><label class="datelab">To <input type="date" id="inqTo"></label>
     <button id="inqClear" type="button" style="padding:9px 14px;border:1px solid #DED3B4;border-radius:9px;background:#fff;color:#5D6656;font-family:'Karla',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer">Clear</button>
   </div>
   <div class="panel">
@@ -241,7 +246,7 @@
   <h2>Recent Visits</h2>
   <div class="inqfilter">
     <input id="visSearch" placeholder="Search visitor, source, device…">
-    <input type="date" id="visFrom" title="From date"><input type="date" id="visTo" title="To date">
+    <label class="datelab">From <input type="date" id="visFrom"></label><label class="datelab">To <input type="date" id="visTo"></label>
     <button id="visClear" type="button" style="padding:9px 14px;border:1px solid #DED3B4;border-radius:9px;background:#fff;color:#5D6656;font-family:'Karla',sans-serif;font-weight:700;font-size:.82rem;cursor:pointer">Clear</button>
   </div>
   <div class="panel">
@@ -454,6 +459,7 @@
 </script>
 <script src="/toast.js"></script>
 <script src="/sidebar.js"></script>
+<script src="/branding.js"></script>
 <script>
 async function loadHealth(){
   var host=document.getElementById('health'); if(!host) return;

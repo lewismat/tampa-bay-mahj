@@ -367,6 +367,20 @@ router.get('/api/health', requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Public: the studio's own logo + name, shown on every page. No auth — it's
+// the same branding a visitor sees on the booking page anyway.
+let _brandCache = { at: 0, val: null };
+router.get('/api/branding', async (req, res) => {
+  try {
+    if (_brandCache.val && Date.now() - _brandCache.at < 20000) return res.json(_brandCache.val);
+    const rows = await sb('settings?id=eq.app&select=business_logo,business_name&limit=1').catch(() => []);
+    const s = (rows && rows[0]) || {};
+    const val = { logo: s.business_logo || '', name: s.business_name || '' };
+    _brandCache = { at: Date.now(), val };
+    res.json(val);
+  } catch (e) { res.json({ logo: '', name: '' }); }
+});
+
 router.get('/api/settings', requireAuth, async (req, res) => {
   try {
     const rows = await sb('settings?id=eq.app&limit=1');
@@ -375,6 +389,8 @@ router.get('/api/settings', requireAuth, async (req, res) => {
     const proto = req.get('x-forwarded-proto') || 'https';
     const base = proto + '://' + req.get('host');
     res.json({ ok: true,
+      businessName: s.business_name || '',
+      businessLogo: s.business_logo || '',
       notifyEmail: s.notify_email || '',
       notifyDefault: process.env.NOTIFY_EMAIL || 'hollymahj@outlook.com',
       emailConfigured: await mail.configured(),
@@ -392,6 +408,13 @@ router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
   try {
     const b = req.body || {};
     const patch = { updated_at: new Date().toISOString() };
+    if ('business_name' in b) patch.business_name = clean(b.business_name, 120) || null;
+    if ('business_logo' in b) {
+      const v = String(b.business_logo || '');
+      if (v && v.length > 4000000) return res.status(400).json({ error: 'That image is too large — try a smaller one.' });
+      if (v && !/^data:image\//.test(v)) return res.status(400).json({ error: 'That does not look like an image.' });
+      patch.business_logo = v || null;
+    }
     if ('resend_api_key' in b) {
       const key = clean(b.resend_api_key, 220);
       if (key && !/^re_/.test(key)) return res.status(400).json({ error: 'A Resend API key starts with re_' });
@@ -420,7 +443,7 @@ router.put('/api/settings', requireAuth, requireOwner, async (req, res) => {
       if (f in b) patch[f] = clean(b[f], 300) || null;
     });
     await sb('settings?id=eq.app', { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(patch) });
-    mail.clearCache();
+    mail.clearCache(); _brandCache = { at: 0, val: null };
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });

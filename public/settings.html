@@ -10,7 +10,7 @@ body{font-family:var(--body);background:var(--cream);color:var(--ink);min-height
 .tbmnav .brand{font-family:var(--display);font-weight:700;font-size:1.15rem;margin-right:auto}
 .tbmnav a{color:var(--cream);text-decoration:none;font-size:.85rem;font-weight:500;opacity:.85;cursor:pointer}
 .tbmnav a:hover{opacity:1}.tbmnav a.active{color:var(--gold);opacity:1;font-weight:700}
-.wrap{max-width:680px;margin:0 auto;padding:28px 22px}
+.wrap{max-width:920px;margin:0 auto;padding:28px 22px}
 h1{font-family:var(--display);font-weight:700;font-size:2.1rem;color:var(--sage-dk)}
 .sub{color:var(--ink-soft);font-weight:300;margin-bottom:20px}
 .panel{background:var(--tile);border:1px solid var(--tile-edge);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 10px 26px rgba(59,72,50,.07)}
@@ -51,6 +51,23 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
   .opt{font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;background:var(--tile);
     border:1px solid var(--tile-edge);color:var(--ink-soft);border-radius:999px;padding:3px 9px;
     vertical-align:middle;font-weight:400}
+
+  .set-layout{display:flex;gap:26px;align-items:flex-start}
+  .set-nav{flex:none;width:200px;position:sticky;top:20px;display:flex;flex-direction:column;gap:3px}
+  .set-nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+    padding:11px 14px;border:none;background:none;border-radius:11px;cursor:pointer;
+    font-family:var(--body);font-size:.92rem;color:var(--ink);transition:background .16s,color .16s}
+  .set-nav button:hover{background:var(--tile)}
+  .set-nav button.active{background:var(--sage);color:#F6F1E2;font-weight:600}
+  .set-body{flex:1;min-width:0}
+  .set-body .panel{display:none}
+  .set-body .panel.show{display:block;animation:setFade .25s ease}
+  @keyframes setFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media(max-width:760px){
+    .set-layout{flex-direction:column;gap:14px}
+    .set-nav{width:100%;position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+    .set-nav button{width:auto;white-space:nowrap;padding:9px 14px;font-size:.86rem}
+  }
 </style><script src="/theme.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/heritage.css">
@@ -59,15 +76,37 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
 <div class="tbmnav"><span class="brand">Tampa Bay Mahj</span><a href="/dashboard">Dashboard</a><a href="/schedule">Scheduling</a><a href="/students">Students</a><a href="/profile">Profile</a><a href="/settings" class="active">Settings</a><a href="/card" target="_blank">Public card ↗</a><a id="tbmLogout" aria-label="Log out">Log out</a></div>
 <div class="wrap">
   <h1>Settings</h1>
-  <p class="sub">Connect Holly's tools. Keys are stored on your own server and never shown here again.</p>
+  <p class="sub">Everything about your studio, in one place.</p>
+  <div class="set-layout">
+    <nav class="set-nav" id="setNav"></nav>
+    <div class="set-body">
 
-  <div class="panel">
+  <div class="panel" data-cat="business">
+    <h2>🏵️ Business profile</h2>
+    <p style="color:var(--ink-soft);font-size:.88rem;font-weight:300;margin:2px 0 12px">Your logo and name show up on your booking page, inquiry form, dashboard and confirmations.</p>
+    <label>Business name</label>
+    <input id="biz_name" placeholder="Tampa Bay Mahj">
+    <label style="margin-top:14px">Your logo</label>
+    <div class="photorow">
+      <div class="photoprev" id="logoprev"><span>No logo</span></div>
+      <div class="photobtns">
+        <button type="button" class="photobtn" id="logopick">Upload logo</button>
+        <button type="button" class="photodel" id="logodel">Remove</button>
+        <span class="photohint">A square PNG or JPG works best. Resized automatically.</span>
+      </div>
+      <input type="file" id="logofile" accept="image/*" style="display:none">
+      <input type="hidden" id="biz_logo">
+    </div>
+    <div class="btnrow" style="margin-top:12px"><button class="save" id="biz_save">Save business profile</button><span class="msg" id="biz_msg"></span></div>
+  </div>
+
+  <div class="panel" data-cat="appearance">
     <h2>🎨 Appearance</h2>
     <p style="color:var(--ink-soft);font-size:.88rem;font-weight:300;margin:2px 0 6px">Pick a color theme for your workspace.</p>
     <div class="swatches" id="swatches"></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-cat="account">
     <h2>🔒 Account · Password</h2>
     <label>Current password</label><input id="pw_cur" type="password" autocomplete="current-password">
     <label>New password</label><input id="pw_new" type="password" autocomplete="new-password">
@@ -75,14 +114,14 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <div class="btnrow"><button class="save" id="pw_save">Update password</button><span class="msg" id="pw_msg"></span></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-cat="team">
     <h2>👥 Team &amp; invites</h2>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Sign-up is invite-only. Share a code and that person can create their own account — each code works once.</p>
     <div class="btnrow"><button class="save" id="inv_new">Generate invite code</button><span class="msg" id="inv_msg"></span></div>
     <div id="inv_list" style="margin-top:14px"></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-cat="email">
     <h2>✉️ Email my guests</h2>
     <div id="mailStatus"></div>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 10px">
@@ -104,7 +143,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <div class="note"><b>Setup:</b> make a free account at <a href="https://resend.com" target="_blank" rel="noopener">resend.com</a>, verify your domain under <b>Domains</b>, then create an API key. The <b>from</b> address must use that verified domain — otherwise Resend will only deliver to your own account address. Until this is filled in, no confirmations go out to anyone.</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-cat="payments">
     <h2>💳 Take payments</h2>
     <div id="stripeStatus"></div>
     <label>Stripe secret or restricted key</label>
@@ -124,7 +163,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <div class="note">A restricted key cannot move your money even if it leaked. Your key is stored on the server and never shown on this page again.</div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-cat="texts">
     <h2>💬 Text my guests <span class="opt">optional</span></h2>
     <div id="twStatus"></div>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 6px">
@@ -136,7 +175,7 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
     <div class="btnrow"><button class="save" id="tw_save">Save</button><button class="test" id="tw_test">Test connection</button><span class="msg" id="tw_msg"></span></div>
   </div>
 
-  <div class="panel">
+  <div class="panel" data-cat="calendar">
     <h2>📅 Calendar</h2>
     <p style="color:var(--ink-soft);font-size:.86rem;font-weight:300;margin:2px 0 8px">Subscribe to this feed in Google, Apple, or Outlook Calendar — every open date appears automatically.</p>
     <label>Your private calendar feed</label>
@@ -152,6 +191,9 @@ button{padding:12px 22px;border:none;border-radius:11px;font-family:var(--body);
       <div class="btnrow"><button class="save" id="m_save">Save Microsoft</button><span class="msg" id="m_msg"></span></div></details>
     </div>
   </div>
+
+    </div><!-- set-body -->
+  </div><!-- set-layout -->
 </div>
 <script>
 function $(id){return document.getElementById(id);}
@@ -175,6 +217,12 @@ async function loadStatus(){
   }
   if($('from_email')&&document.activeElement!==$('from_email'))$('from_email').value=s.emailFrom||'';
   if($('resend_key'))$('resend_key').placeholder=s.resendHint?('saved \u00b7 '+s.resendHint):'re_\u2026';
+  if($('biz_name')&&document.activeElement!==$('biz_name'))$('biz_name').value=s.businessName||'';
+  if($('biz_logo')&&!$('biz_logo').value){
+    $('biz_logo').value=s.businessLogo||'';
+    var lp=$('logoprev');
+    if(lp) lp.innerHTML = s.businessLogo ? '<img src="'+s.businessLogo+'" alt="logo">' : '<span>No logo</span>';
+  }
   if($('cal_url'))$('cal_url').value=s.calendarUrl||'';
   if(s.googleClientId&&$('g_id'))$('g_id').value=s.googleClientId;
   if(s.msClientId&&$('m_id'))$('m_id').value=s.msClientId;
@@ -262,4 +310,71 @@ $('inv_new').addEventListener('click',async function(){
 </script>
 <script src="/toast.js"></script>
 <script src="/sidebar.js"></script>
+<script src="/branding.js"></script>
+
+<script>
+(function(){
+  var CATS=[
+    ['business','🏵️ Business'],['appearance','🎨 Appearance'],['account','🔒 Account'],
+    ['payments','💳 Payments'],['email','✉️ Email'],['texts','💬 Texts'],
+    ['calendar','📅 Calendar'],['team','👥 Team']
+  ];
+  var nav=document.getElementById('setNav');
+  function show(cat){
+    document.querySelectorAll('.set-body .panel').forEach(function(p){
+      p.classList.toggle('show', p.getAttribute('data-cat')===cat);
+    });
+    nav.querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-go')===cat);
+    });
+    try{ localStorage.setItem('tbm_settings_cat', cat); }catch(e){}
+  }
+  CATS.forEach(function(c){
+    var b=document.createElement('button');
+    b.setAttribute('data-go',c[0]); b.textContent=c[1];
+    b.onclick=function(){ show(c[0]); };
+    nav.appendChild(b);
+  });
+  var start='business';
+  try{ var saved=localStorage.getItem('tbm_settings_cat'); if(saved&&document.querySelector('.panel[data-cat="'+saved+'"]')) start=saved; }catch(e){}
+  var hash=(location.hash||'').replace('#','');
+  if(hash&&document.querySelector('.panel[data-cat="'+hash+'"]')) start=hash;
+  show(start);
+
+  // ---- business logo upload ----
+  function $(id){return document.getElementById(id);}
+  function showLogo(data){
+    var p=$('logoprev');
+    p.innerHTML = data ? '<img src="'+data+'" alt="logo">' : '<span>No logo</span>';
+  }
+  if($('logopick')) $('logopick').onclick=function(){ $('logofile').click(); };
+  if($('logodel')) $('logodel').onclick=function(){ $('biz_logo').value=''; showLogo(''); };
+  if($('logofile')) $('logofile').addEventListener('change',function(){
+    var file=this.files&&this.files[0]; if(!file)return;
+    var r=new FileReader();
+    r.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var max=512, w=img.width, h=img.height;
+        if(w>h){ if(w>max){h=Math.round(h*max/w);w=max;} } else { if(h>max){w=Math.round(w*max/h);h=max;} }
+        var c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        // PNG keeps transparency for logos; fall back small
+        var data=c.toDataURL('image/png');
+        if(data.length>3500000) data=c.toDataURL('image/jpeg',0.85);
+        $('biz_logo').value=data; showLogo(data);
+      };
+      img.src=e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+  if($('biz_save')) $('biz_save').addEventListener('click',async function(){
+    var m=$('biz_msg'); m.className='msg'; m.textContent='Saving…';
+    var d=await fetch('/api/settings',{method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({business_name:$('biz_name').value.trim(),business_logo:$('biz_logo').value})}).then(function(r){return r.json();});
+    if(d.ok){ m.className='msg ok'; m.textContent='Saved ✓'; }
+    else{ m.className='msg err'; m.textContent=d.error||'Error'; }
+  });
+})();
+</script>
 </body></html>
