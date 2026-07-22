@@ -67,6 +67,42 @@
     padding:13px;cursor:pointer}
   .lock .err{color:var(--red);font-size:.85rem;margin-top:10px;min-height:1.2em}
   @media(max-width:700px){ .hide-sm{display:none} }
+
+/* ---- mobile: keep the dashboard readable on a phone ---- */
+@media(max-width:700px){
+  .wrap{padding:22px 14px 70px}
+  header{gap:12px;margin-bottom:22px}
+  header svg,header img{width:56px;height:56px}
+  header .t h1{font-size:1.05rem;letter-spacing:.18em}
+  header .t .s{font-size:1.4rem}
+  header .right{margin-left:0;width:100%;order:3}
+
+  /* stat cards two-up, revenue cards full width */
+  .cards{grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+  .card{padding:16px}
+  .card .n{font-size:1.7rem}
+  #revcards{grid-template-columns:1fr}
+
+  /* tables scroll sideways instead of clipping the Status column */
+  .panel{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+  table{font-size:.84rem}
+  th,td{padding:9px 10px}
+
+  /* filters stack and go full width */
+  .inqfilter{gap:8px}
+  .inqfilter input,.inqfilter select{flex:1 1 100%;min-width:0;font-size:16px}
+  .inqfilter input[type=date]{flex:1 1 46%}
+  .inqfilter button{flex:1 1 100%}
+
+  /* upcoming events: let the row breathe instead of forcing a wide date column */
+  .ev-when{min-width:0;font-size:.98rem;flex:1 1 100%}
+  .ev-row{flex-wrap:wrap;gap:6px 12px;padding:12px 14px}
+  .ev-detail{padding-left:18px}
+
+  /* expanded detail grid: one column */
+  .dg{grid-template-columns:1fr}
+}
+
 .card.gold{border-bottom:4px solid #C9A24B}
 .card.gold .n{color:#8A6D14}
 .evhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0 10px}
